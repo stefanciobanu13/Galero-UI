@@ -34,18 +34,24 @@ export const playerService = {
 
 export const authService = {
   loginWithGoogle: (credential: string) => {
-    // Store the credential - in a real app, you'd validate this with your backend
-    localStorage.setItem('authToken', credential);
-    localStorage.setItem('userRole', 'user');
-    return Promise.resolve({
-      token: credential,
-      user: {
-        email: 'user@example.com',
-        name: 'User Name',
-        picture: '',
-        isAdmin: false,
-      }
+    // Send the Google credential JWT to the backend for validation
+    // Backend will decode the credential and return user profile with all fields
+    return api.post('/users/google/login', { credential }).catch(error => {
+      console.error('Login error response:', error.response?.data || error.message);
+      throw error;
     });
+  },
+
+  getPlayerById: (playerId: number) => {
+    return playerService.getById(playerId);
+  },
+
+  assignPlayerToUser: (userId: number, playerId: number) => {
+    return api.post(`/users/${userId}/assign-player/${playerId}`);
+  },
+
+  unassignPlayerFromUser: (userId: number) => {
+    return api.post(`/users/${userId}/unassign-player`);
   },
   
   logout: () => {

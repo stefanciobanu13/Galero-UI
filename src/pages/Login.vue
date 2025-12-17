@@ -13,100 +13,116 @@
             </p>
 
             <div class="text-center mb-6">
-              <v-btn
-                id="google-signin-button"
-                size="large"
-                color="primary"
-                variant="outlined"
-                class="w-100"
-                prepend-icon="mdi-google"
-                @click="handleGoogleSignIn"
-              >
-                Sign in with Google
-              </v-btn>
+              <div id="google-signin-button" ref="googleButtonContainer" />
             </div>
 
-            <v-divider class="my-6" />
 
-            <div class="mt-6">
-              <p class="text-center text-body2 text-grey">
-                For demo purposes, you can also:
-              </p>
-              <v-btn
-                size="small"
-                color="info"
-                variant="text"
-                class="mt-2 w-100"
-                @click="loginAsUser"
-              >
-                Demo: Login as User
-              </v-btn>
-              <v-btn
-                size="small"
-                color="warning"
-                variant="text"
-                class="mt-2 w-100"
-                @click="loginAsAdmin"
-              >
-                Demo: Login as Admin
-              </v-btn>
-            </div>
+
+            <v-alert
+              v-if="errorMessage"
+              type="error"
+              variant="tonal"
+              class="mt-6"
+            >
+              {{ errorMessage }}
+            </v-alert>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Player Selection Modal -->
+    <PlayerSelectionModal
+      v-model:open="showPlayerModal"
+      @player-selected="handlePlayerSelected"
+      @skip="handleSkipPlayerSelection"
+    />
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 const router = useRouter();
 const authStore = useAuthStore();
-const showError = ref(false);
+const googleButtonContainer = ref<HTMLDivElement | null>(null);
+const showPlayerModal = ref(false);
 const errorMessage = ref('');
 
-const handleGoogleSignIn = async () => {
-  // For development/demo, we'll simulate Google Sign-In
-  // In production, integrate with actual Google OAuth
-  loginAsUser();
+const handleGoogleSuccess = async (response: any) => {
+  try {
+    errorMessage.value = '';
+    const result = await authStore.loginWithGoogle(response.credential);
+    
+    if (result.needsPlayerSelection) {
+      showPlayerModal.value = true;
+    } else {
+      router.push('/');
+    }
+  } catch (error) {
+    console.error('Login failed:', error);
+    errorMessage.value = 'Login failed. Please try again.';
+  }
 };
 
-const loginAsUser = () => {
-  const demoUser = {
-    email: 'user@example.com',
-    name: 'Demo User',
-    picture: 'https://cdn.vuetifyjs.com/images/avatars/2.jpg',
-  };
+const handleGoogleError = () => {
+  errorMessage.value = 'Google sign-in failed. Please try again.';
+};
 
-  localStorage.setItem('user', JSON.stringify(demoUser));
-  localStorage.setItem('isLoggedIn', 'true');
-  localStorage.setItem('isAdmin', 'false');
-  
-  authStore.login(demoUser);
-  authStore.setAdmin(false);
-  
+const handlePlayerSelected = () => {
+  // Player has been assigned, redirect to home
+  setTimeout(() => {
+    router.push('/');
+  }, 500);
+};
+
+const handleSkipPlayerSelection = () => {
+  // User skipped player selection, redirect to home
   router.push('/');
 };
 
-const loginAsAdmin = () => {
-  const demoAdmin = {
-    email: 'admin@example.com',
-    name: 'Demo Admin',
-    picture: 'https://cdn.vuetifyjs.com/images/avatars/3.jpg',
-  };
-
-  localStorage.setItem('user', JSON.stringify(demoAdmin));
-  localStorage.setItem('isLoggedIn', 'true');
-  localStorage.setItem('isAdmin', 'true');
-  
-  authStore.login(demoAdmin);
-  authStore.setAdmin(true);
-  
-  router.push('/');
+const isGoogleClientIdConfigured = (): boolean => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  return clientId && !clientId.includes('YOUR_GOOGLE_CLIENT_ID');
 };
+
+
+onMounted(() => {
+  // Initialize Google Sign-In button
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  
+  if (!clientId || clientId.includes('YOUR_GOOGLE_CLIENT_ID')) {
+    errorMessage.value = 'Google OAuth is not configured. Use demo buttons to test or set VITE_GOOGLE_CLIENT_ID environment variable.';
+    return;
+  }
+  
+  if (window.google) {
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleSuccess,
+    });
+
+    if (googleButtonContainer.value) {
+      window.google.accounts.id.renderButton(
+        googleButtonContainer.value,
+        {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+        }
+      );
+    }
+  }
+});
 </script>
 
 <style scoped>

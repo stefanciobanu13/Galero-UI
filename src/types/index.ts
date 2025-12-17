@@ -6,10 +6,19 @@ export interface Player {
 }
 
 export interface User {
+  userId?: number;
   email: string;
   name: string;
   picture: string;
   isAdmin: boolean;
+  googleId?: string;
+  firstName?: string;
+  lastName?: string;
+  profilePictureUrl?: string;
+  playerId?: number;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {

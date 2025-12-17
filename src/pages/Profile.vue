@@ -41,6 +41,60 @@
 
             <v-divider class="my-6" />
 
+            <!-- Assigned Player Section -->
+            <div class="mb-6">
+              <p class="text-overline text-grey mb-3">Assigned Player</p>
+              <v-card v-if="authStore.user?.playerId" variant="outlined" class="pa-4 mb-3">
+                <div class="d-flex align-center justify-space-between">
+                  <div>
+                    <p class="font-weight-bold mb-1">
+                      {{ assignedPlayerName }}
+                    </p>
+                    <p class="text-body2 text-grey mb-0">
+                      Player ID: {{ authStore.user.playerId }}
+                    </p>
+                  </div>
+                  <v-icon color="primary">mdi-check-circle</v-icon>
+                </div>
+              </v-card>
+              <div v-else class="d-flex align-center gap-2 mb-3">
+                <v-icon color="warning">mdi-alert-circle</v-icon>
+                <span class="text-body2 text-grey">No player assigned yet</span>
+              </div>
+              <div class="d-flex gap-2">
+                <v-btn
+                  v-if="authStore.user?.playerId"
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                  @click="showChangePlayerModal = true"
+                  :loading="isChangingPlayer"
+                >
+                  Change Player
+                </v-btn>
+                <v-btn
+                  v-else
+                  size="small"
+                  color="primary"
+                  @click="showChangePlayerModal = true"
+                >
+                  Assign Player
+                </v-btn>
+                <v-btn
+                  v-if="authStore.user?.playerId"
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  @click="handleUnassignPlayer"
+                  :loading="isUnassigningPlayer"
+                >
+                  Unlink
+                </v-btn>
+              </div>
+            </div>
+
+            <v-divider class="my-6" />
+
             <div class="mt-6">
               <p class="text-body2 text-grey mb-4">
                 Member since: {{ memberSinceDate }}
@@ -69,22 +123,70 @@
             >
               Logout
             </v-btn>
+
+            <v-alert
+              v-if="successMessage"
+              type="success"
+              variant="tonal"
+              class="mt-4"
+            >
+              {{ successMessage }}
+            </v-alert>
+
+            <v-alert
+              v-if="errorMessage"
+              type="error"
+              variant="tonal"
+              class="mt-4"
+            >
+              {{ errorMessage }}
+            </v-alert>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Player Selection Modal for Changing Player -->
+    <PlayerSelectionModal
+      v-model:open="showChangePlayerModal"
+      @player-selected="handlePlayerSelected"
+      @skip="showChangePlayerModal = false"
+    />
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { playerService } from '../services/api';
+import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const showChangePlayerModal = ref(false);
+const isChangingPlayer = ref(false);
+const isUnassigningPlayer = ref(false);
+const successMessage = ref('');
+const errorMessage = ref('');
+
+const assignedPlayerName = computed(() => {
+  if (authStore.user?.firstName && authStore.user?.lastName) {
+    return `${authStore.user.firstName} ${authStore.user.lastName}`;
+  }
+  return 'Unknown Player';
+});
 
 const memberSinceDate = computed(() => {
+  if (authStore.user?.createdAt) {
+    const date = new Date(authStore.user.createdAt);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+  
   const date = new Date();
   return date.toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -92,6 +194,41 @@ const memberSinceDate = computed(() => {
     day: 'numeric' 
   });
 });
+
+const handlePlayerSelected = async () => {
+  successMessage.value = 'Player assigned successfully!';
+  errorMessage.value = '';
+  isChangingPlayer.value = false;
+  showChangePlayerModal.value = false;
+  
+  setTimeout(() => {
+    successMessage.value = '';
+  }, 3000);
+};
+
+const handleUnassignPlayer = async () => {
+  if (!confirm('Are you sure you want to unlink your player?')) {
+    return;
+  }
+
+  isUnassigningPlayer.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  try {
+    await authStore.unassignPlayer();
+    successMessage.value = 'Player unlinked successfully!';
+    
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to unassign player:', error);
+    errorMessage.value = 'Failed to unlink player. Please try again.';
+  } finally {
+    isUnassigningPlayer.value = false;
+  }
+};
 
 const logout = () => {
   authStore.logout();

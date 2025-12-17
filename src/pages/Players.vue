@@ -151,7 +151,7 @@
 import { onMounted, ref, computed } from 'vue';
 import { usePlayerStore } from '../stores/player';
 import { useAuthStore } from '../stores/auth';
-import { Player } from '../types';
+import type { Player } from '../types';
 
 const playerStore = usePlayerStore();
 const authStore = useAuthStore();

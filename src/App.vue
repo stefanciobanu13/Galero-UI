@@ -89,7 +89,7 @@
         </v-list>
       </v-menu>
 
-      <v-toolbar-title>Football Competition</v-toolbar-title>
+      <v-toolbar-title>Default Test</v-toolbar-title>
     </v-app-bar>
 
     <!-- Main Content -->
