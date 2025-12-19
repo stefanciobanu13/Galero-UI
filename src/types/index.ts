@@ -25,3 +25,58 @@ export interface AuthResponse {
   token: string;
   user: User;
 }
+
+export interface Edition {
+  editionId?: number;
+  editionNumber: number;
+  date: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Team {
+  teamId?: number;
+  editionId: number;
+  color: 'green' | 'orange' | 'gray' | 'blue';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TeamPlayer {
+  teamPlayerId?: number;
+  teamId: number;
+  playerId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Match {
+  matchId?: number;
+  editionId: number;
+  homeTeamId: number;
+  awayTeamId: number;
+  matchNumber: number;
+  matchType: 'REGULAR' | 'SEMI_FINAL' | 'FINAL';
+  homeTeamScore?: number;
+  awayTeamScore?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Goal {
+  goalId?: number;
+  matchId: number;
+  teamId: number;
+  playerId: number;
+  goalType: 'NORMAL' | 'PENALTY' | 'OWN_GOAL';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Attendance {
+  attendanceId?: number;
+  editionId: number;
+  playerId: number;
+  createdAt?: string;
+  updatedAt?: string;
+}

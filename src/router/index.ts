@@ -5,6 +5,8 @@ import Players from '../pages/Players.vue';
 import Profile from '../pages/Profile.vue';
 import Login from '../pages/Login.vue';
 import AddPlayer from '../pages/AddPlayer.vue';
+import Attendance from '../pages/Attendance.vue';
+import Editions from '../pages/Editions.vue';
 
 const routes = [
   {
@@ -28,6 +30,18 @@ const routes = [
     name: 'AddPlayer',
     component: AddPlayer,
     meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/attendance',
+    name: 'Attendance',
+    component: Attendance,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/editions',
+    name: 'Editions',
+    component: Editions,
+    meta: { requiresAuth: true },
   },
   {
     path: '/profile',

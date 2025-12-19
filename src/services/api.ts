@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
-import type { Player } from '../types';
+import type { Player, Edition, Team, Match, Goal, Attendance, TeamPlayer } from '../types';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
 
@@ -70,6 +70,87 @@ export const authService = {
   isLoggedIn: () => {
     return !!localStorage.getItem('authToken');
   }
+};
+
+export const attendanceService = {
+  getAttendanceByDate: (date: string) => {
+    return api.get(`/attendance/edition/${date}`);
+  },
+
+  getAttendanceById: (attendanceId: number) => {
+    return api.get(`/attendance/${attendanceId}`);
+  },
+
+  submitAttendance: (attendanceData: any) => {
+    return api.post('/attendance/submit', attendanceData);
+  },
+
+  updateAttendance: (attendanceId: number, attendanceData: any) => {
+    return api.put(`/attendance/${attendanceId}`, attendanceData);
+  },
+
+  deleteAttendance: (attendanceId: number) => {
+    return api.delete(`/attendance/${attendanceId}`);
+  },
+
+  getAllAttendances: () => {
+    return api.get('/attendance');
+  },
+
+  getAttendanceByEdition: (editionId: number) => {
+    return api.get<Attendance[]>(`/attendance/edition/${editionId}`);
+  },
+};
+
+export const editionService = {
+  getAll: () => api.get<Edition[]>('/editions'),
+  getById: (id: number) => api.get<Edition>(`/editions/${id}`),
+  create: (edition: Edition) => api.post<Edition>('/editions', edition),
+  update: (id: number, edition: Edition) => api.put<Edition>(`/editions/${id}`, edition),
+  delete: (id: number) => api.delete(`/editions/${id}`),
+  getByNumber: (number: number) => api.get<Edition>(`/editions/number/${number}`),
+};
+
+export const teamService = {
+  getAll: () => api.get<Team[]>('/teams'),
+  getById: (id: number) => api.get<Team>(`/teams/${id}`),
+  create: (team: Team) => api.post<Team>('/teams', team),
+  update: (id: number, team: Team) => api.put<Team>(`/teams/${id}`, team),
+  delete: (id: number) => api.delete(`/teams/${id}`),
+  getByEdition: (editionId: number) => api.get<Team[]>(`/teams/edition/${editionId}`),
+};
+
+export const teamPlayerService = {
+  getAll: () => api.get<TeamPlayer[]>('/team-players'),
+  addPlayerToTeam: (teamId: number, playerId: number) => 
+    api.post<TeamPlayer>('/team-players', { teamId, playerId }),
+  getPlayersByTeam: (teamId: number) => 
+    api.get<TeamPlayer[]>(`/team-players/team/${teamId}`),
+  removePlayerFromTeam: (teamId: number, playerId: number) => 
+    api.delete(`/team-players/${teamId}/${playerId}`),
+};
+
+export const matchService = {
+  getAll: () => api.get<Match[]>('/matches'),
+  getById: (id: number) => api.get<Match>(`/matches/${id}`),
+  create: (match: Match) => api.post<Match>('/matches', match),
+  update: (id: number, match: Match) => api.put<Match>(`/matches/${id}`, match),
+  delete: (id: number) => api.delete(`/matches/${id}`),
+  getByEdition: (editionId: number) => api.get<Match[]>(`/matches/edition/${editionId}`),
+  getByTeam: (teamId: number) => api.get<Match[]>(`/matches/team/${teamId}`),
+  getByType: (matchType: string) => api.get<Match[]>(`/matches/type/${matchType}`),
+};
+
+export const goalService = {
+  getAll: () => api.get<Goal[]>('/goals'),
+  getById: (id: number) => api.get<Goal>(`/goals/${id}`),
+  create: (goal: Goal) => api.post<Goal>('/goals', goal),
+  update: (id: number, goal: Goal) => api.put<Goal>(`/goals/${id}`, goal),
+  delete: (id: number) => api.delete(`/goals/${id}`),
+  getByMatch: (matchId: number) => api.get<Goal[]>(`/goals/match/${matchId}`),
+  getByTeam: (teamId: number) => api.get<Goal[]>(`/goals/team/${teamId}`),
+  getByPlayer: (playerId: number) => api.get<Goal[]>(`/goals/player/${playerId}`),
+  getByType: (goalType: string) => api.get<Goal[]>(`/goals/type/${goalType}`),
 };
 
 export default api;

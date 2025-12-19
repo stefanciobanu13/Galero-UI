@@ -67,6 +67,24 @@
             @click="showMenu = false"
           />
 
+          <!-- Attendance Item -->
+          <v-list-item
+            v-if="authStore.isLoggedIn"
+            title="Attendance"
+            to="/attendance"
+            prepend-icon="mdi-calendar-check"
+            @click="showMenu = false"
+          />
+
+          <!-- Editions Item -->
+          <v-list-item
+            v-if="authStore.isLoggedIn"
+            title="Editions"
+            to="/editions"
+            prepend-icon="mdi-trophy"
+            @click="showMenu = false"
+          />
+
           <!-- Profile Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
