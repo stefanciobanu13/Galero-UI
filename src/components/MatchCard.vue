@@ -42,8 +42,8 @@
         </div>
       </div>
 
-      <!-- Mark as Played Button (for 0-0 draws) -->
-      <div class="mb-4 text-center" v-if="!match.isPlayed">
+      <!-- Mark as Played Button (for 0-0 draws) - Only show when no goals exist -->
+      <div class="mb-4 text-center" v-if="totalGoals === 0 && !match.isPlayed">
         <v-btn
           @click="toggleMatchPlayed"
           color="primary"
@@ -56,16 +56,6 @@
         <p class="text-caption text-grey mt-2">
           Click to mark this match as played with 0-0 score, or add goals below to automatically start tracking
         </p>
-      </div>
-      <div class="mb-4 text-center" v-else>
-        <v-btn
-          @click="toggleMatchPlayed"
-          color="warning"
-          variant="text"
-          size="x-small"
-        >
-          Reset to Not Played
-        </v-btn>
       </div>
 
       <v-divider class="my-4" />
@@ -85,10 +75,11 @@
             closable
             @click:close="removeGoal(goal.goalId!)"
             class="mr-1 mb-1"
+            :class="{ 'own-goal-chip': goal.goalType === 'OWN_GOAL' }"
           >
-            <span class="mr-1">{{ getPlayerName(goal.playerId) }}</span>
+            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'OWN_GOAL' }">{{ getPlayerName(goal.playerId) }}</span>
             <span v-if="goal.goalType === 'PENALTY'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs">(OG)</span>
+            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs text-red">(OG)</span>
           </v-chip>
         </div>
         <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
@@ -142,10 +133,11 @@
             closable
             @click:close="removeGoal(goal.goalId!)"
             class="mr-1 mb-1"
+            :class="{ 'own-goal-chip': goal.goalType === 'OWN_GOAL' }"
           >
-            <span class="mr-1">{{ getPlayerName(goal.playerId) }}</span>
+            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'OWN_GOAL' }">{{ getPlayerName(goal.playerId) }}</span>
             <span v-if="goal.goalType === 'PENALTY'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs">(OG)</span>
+            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs text-red">(OG)</span>
           </v-chip>
         </div>
         <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
@@ -247,13 +239,28 @@ const awayTeamPlayers = computed(() => {
   }));
 });
 
-// Goals
+// Goals - Use store directly for reactivity, show regular goals in team's section, own goals in opponent's section
+const matchGoals = computed(() =>
+  editionsStore.goals.filter(g => g.matchId === props.match.matchId)
+);
+
 const homeTeamGoals = computed(() =>
-  props.match.goals.filter(g => g.teamId === props.match.homeTeamId)
+  matchGoals.value.filter(g => 
+    (g.teamId === props.match.homeTeamId && g.goalType !== 'OWN_GOAL') ||
+    (g.teamId === props.match.awayTeamId && g.goalType === 'OWN_GOAL')
+  )
 );
 
 const awayTeamGoals = computed(() =>
-  props.match.goals.filter(g => g.teamId === props.match.awayTeamId)
+  matchGoals.value.filter(g =>
+    (g.teamId === props.match.awayTeamId && g.goalType !== 'OWN_GOAL') ||
+    (g.teamId === props.match.homeTeamId && g.goalType === 'OWN_GOAL')
+  )
+);
+
+// Total goals in match (to determine if mark as played button should show)
+const totalGoals = computed(() =>
+  homeTeamGoals.value.length + awayTeamGoals.value.length
 );
 
 // Colors
@@ -370,6 +377,15 @@ const toggleMatchPlayed = () => {
   padding: 12px;
   background-color: #f9f9f9;
   border-radius: 4px;
+}
+
+.own-goal-chip {
+  border: 2px solid #ff5252 !important;
+  background-color: rgba(255, 82, 82, 0.1) !important;
+}
+
+.text-red {
+  color: #ff5252 !important;
 }
 
 .text-capitalize {

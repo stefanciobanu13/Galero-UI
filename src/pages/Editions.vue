@@ -121,7 +121,7 @@
                   :disabled="!editionForm.date || !editionForm.editionNumber"
                   :loading="isInitializing"
                 >
-                  Initialize Edition (Create Teams & Matches)
+                  Initialize Edition
                 </v-btn>
               </v-col>
             </v-row>
@@ -520,6 +520,7 @@ const saveEdition = async () => {
       const teamData = {
         editionId: createdEdition.editionId!,
         color: team.color,
+        teamColor: team.color,
       };
       const teamResponse = await teamService.create(teamData);
       teamIdMap[team.teamId!] = teamResponse.data.teamId!;

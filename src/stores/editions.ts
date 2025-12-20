@@ -27,28 +27,28 @@ export const useEditionsStore = defineStore('editions', () => {
   const STORAGE_KEY = 'galero_editions_state';
 
   const MATCH_ORDER = [
-    { homeColor: 'green', awayColor: 'orange', number: 1, type: 'REGULAR' as const },
-    { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'REGULAR' as const },
-    { homeColor: 'orange', awayColor: 'blue', number: 3, type: 'REGULAR' as const },
-    { homeColor: 'gray', awayColor: 'green', number: 4, type: 'REGULAR' as const },
-    { homeColor: 'green', awayColor: 'blue', number: 5, type: 'REGULAR' as const },
-    { homeColor: 'orange', awayColor: 'gray', number: 6, type: 'REGULAR' as const },
-    { homeColor: 'blue', awayColor: 'green', number: 7, type: 'REGULAR' as const },
-    { homeColor: 'gray', awayColor: 'orange', number: 8, type: 'REGULAR' as const },
-    { homeColor: 'green', awayColor: 'gray', number: 9, type: 'REGULAR' as const },
-    { homeColor: 'blue', awayColor: 'orange', number: 10, type: 'REGULAR' as const },
-    { homeColor: 'orange', awayColor: 'green', number: 11, type: 'REGULAR' as const },
-    { homeColor: 'gray', awayColor: 'blue', number: 12, type: 'REGULAR' as const },
+    { homeColor: 'Green', awayColor: 'Orange', number: 1, type: 'REGULAR' as const },
+    { homeColor: 'Blue', awayColor: 'Gray', number: 2, type: 'REGULAR' as const },
+    { homeColor: 'Orange', awayColor: 'Blue', number: 3, type: 'REGULAR' as const },
+    { homeColor: 'Gray', awayColor: 'Green', number: 4, type: 'REGULAR' as const },
+    { homeColor: 'Green', awayColor: 'Blue', number: 5, type: 'REGULAR' as const },
+    { homeColor: 'Orange', awayColor: 'Gray', number: 6, type: 'REGULAR' as const },
+    { homeColor: 'Blue', awayColor: 'Green', number: 7, type: 'REGULAR' as const },
+    { homeColor: 'Gray', awayColor: 'Orange', number: 8, type: 'REGULAR' as const },
+    { homeColor: 'Green', awayColor: 'Gray', number: 9, type: 'REGULAR' as const },
+    { homeColor: 'Blue', awayColor: 'Orange', number: 10, type: 'REGULAR' as const },
+    { homeColor: 'Orange', awayColor: 'Green', number: 11, type: 'REGULAR' as const },
+    { homeColor: 'Gray', awayColor: 'Blue', number: 12, type: 'REGULAR' as const },
     { homeColor: 'placeholder', awayColor: 'placeholder', number: 13, type: 'SEMI_FINAL' as const }, // Small final - determined by standings
     { homeColor: 'placeholder', awayColor: 'placeholder', number: 14, type: 'FINAL' as const }, // Big final - determined by standings
   ];
 
-  // Computed standings
+  // Computed standings - Only based on REGULAR matches for determining final placements
   const standings = computed(() => {
     const teamStandings = teams.value.map(team => {
       const teamMatches = matches.value.filter(
         m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
-             (m.matchType === 'REGULAR' || m.matchType === 'SEMI_FINAL' || m.matchType === 'FINAL') &&
+             m.matchType === 'REGULAR' &&
              // Only count matches that are marked as played
              m.isPlayed === true
       );
@@ -89,6 +89,26 @@ export const useEditionsStore = defineStore('editions', () => {
       return b.goalDifference - a.goalDifference;
     });
   });
+
+  // Update final match teams based on current standings
+  const updateFinalMatchTeams = () => {
+    const sorted = standings.value;
+    if (sorted.length < 4) return;
+
+    // Update Small Final (SEMI_FINAL): 3rd vs 4th
+    const smallFinal = matches.value.find(m => m.matchType === 'SEMI_FINAL');
+    if (smallFinal && sorted[2]?.teamId && sorted[3]?.teamId) {
+      smallFinal.homeTeamId = sorted[2].teamId;
+      smallFinal.awayTeamId = sorted[3].teamId;
+    }
+
+    // Update Big Final (FINAL): 1st vs 2nd
+    const bigFinal = matches.value.find(m => m.matchType === 'FINAL');
+    if (bigFinal && sorted[0]?.teamId && sorted[1]?.teamId) {
+      bigFinal.homeTeamId = sorted[0].teamId;
+      bigFinal.awayTeamId = sorted[1].teamId;
+    }
+  };
 
   // Save state to localStorage
   const saveState = () => {
@@ -246,6 +266,9 @@ export const useEditionsStore = defineStore('editions', () => {
 
       // If creating new edition, just add to local state
       if (isCreatingNewEdition.value) {
+        // Generate a temporary negative ID for local goals (to distinguish from database IDs)
+        const tempId = Math.min(...goals.value.filter(g => g.goalId && g.goalId < 0).map(g => g.goalId || 0), 0) - 1;
+        goalData.goalId = tempId;
         goals.value.push(goalData);
       } else {
         // If editing existing edition, save to database
@@ -300,21 +323,25 @@ export const useEditionsStore = defineStore('editions', () => {
       
       // Only calculate scores for matches that are marked as played
       if (match.isPlayed) {
+        // Count regular goals for each team
         const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'OWN_GOAL').length;
         const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'OWN_GOAL').length;
         
-        // Add own goals
+        // Count own goals - credited to the opposing team
         const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'OWN_GOAL').length;
         const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'OWN_GOAL').length;
 
-        match.homeTeamScore = homeGoals + awayOwnGoals;
-        match.awayTeamScore = awayGoals + homeOwnGoals;
+        match.homeTeamScore = homeGoals + homeOwnGoals;
+        match.awayTeamScore = awayGoals + awayOwnGoals;
       } else {
         // Keep scores as null for unplayed matches
         match.homeTeamScore = null;
         match.awayTeamScore = null;
       }
     });
+
+    // Update final match teams based on current standings
+    updateFinalMatchTeams();
   };
 
   // Mark a match as played (enables score tracking)
@@ -395,6 +422,7 @@ export const useEditionsStore = defineStore('editions', () => {
     addGoal,
     removeGoal,
     markMatchAsPlayed,
+    updateFinalMatchTeams,
     saveEdition,
     getTeamColor,
     getTeamPlayers,
