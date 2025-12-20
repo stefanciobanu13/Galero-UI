@@ -76,7 +76,7 @@ export const usePlayerStore = defineStore('player', () => {
         await fetchPlayers();
       } else {
         const response = await playerService.searchByName(firstName, lastName);
-        players.value = response.data;
+        players.value = [response.data];
       }
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to search players';

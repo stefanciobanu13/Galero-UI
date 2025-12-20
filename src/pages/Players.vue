@@ -8,25 +8,40 @@
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="12" sm="6" md="4">
+              <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="searchFirstName"
                   label="Search by First Name"
                   prepend-icon="mdi-magnify"
                   clearable
-                  @update:model-value="handleSearch"
                 />
               </v-col>
-              <v-col cols="12" sm="6" md="4">
+              <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="searchLastName"
                   label="Search by Last Name"
                   prepend-icon="mdi-magnify"
                   clearable
-                  @update:model-value="handleSearch"
                 />
               </v-col>
-              <v-col cols="12" md="4" class="d-flex align-center">
+              <v-col cols="12" md="6" class="d-flex align-center gap-2">
+                <v-btn
+                  color="info"
+                  variant="outlined"
+                  prepend-icon="mdi-magnify"
+                  @click="handleSearch"
+                  :loading="playerStore.loading"
+                >
+                  Search
+                </v-btn>
+                <v-btn
+                  color="success"
+                  variant="outlined"
+                  prepend-icon="mdi-plus"
+                  @click="addPlayer"
+                >
+                  Add Player
+                </v-btn>
                 <v-btn
                   color="primary"
                   variant="outlined"
@@ -144,6 +159,41 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Add Player Dialog -->
+    <v-dialog v-model="showAddDialog" max-width="500">
+      <v-card>
+        <v-card-title>Add New Player</v-card-title>
+        <v-card-text>
+          <v-form ref="addForm" @submit.prevent="saveNewPlayer">
+            <v-text-field
+              v-model="newPlayer.firstName"
+              label="First Name"
+              required
+              class="mb-4"
+            />
+            <v-text-field
+              v-model="newPlayer.lastName"
+              label="Last Name"
+              required
+              class="mb-4"
+            />
+            <v-text-field
+              v-model.number="newPlayer.grade"
+              label="Grade"
+              type="number"
+              step="0.1"
+              required
+            />
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text @click="showAddDialog = false">Cancel</v-btn>
+          <v-btn color="success" @click="saveNewPlayer" :loading="playerStore.loading">Add Player</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -159,8 +209,15 @@ const searchFirstName = ref('');
 const searchLastName = ref('');
 const showEditDialog = ref(false);
 const showDeleteDialog = ref(false);
+const showAddDialog = ref(false);
 const selectedPlayer = ref<Player | null>(null);
 const playerToDelete = ref<number | null>(null);
+
+const newPlayer = ref<Partial<Player>>({
+  firstName: '',
+  lastName: '',
+  grade: 0,
+});
 
 const headers = computed(() => {
   const baseHeaders = [
@@ -218,6 +275,31 @@ const confirmDelete = async () => {
       await playerStore.deletePlayer(playerToDelete.value);
       showDeleteDialog.value = false;
       playerToDelete.value = null;
+    } catch {
+      // Error is handled by store
+    }
+  }
+};
+
+const addPlayer = () => {
+  newPlayer.value = {
+    firstName: '',
+    lastName: '',
+    grade: 0,
+  };
+  showAddDialog.value = true;
+};
+
+const saveNewPlayer = async () => {
+  if (newPlayer.value.firstName && newPlayer.value.lastName && newPlayer.value.grade !== undefined) {
+    try {
+      await playerStore.createPlayer(newPlayer.value as Player);
+      showAddDialog.value = false;
+      newPlayer.value = {
+        firstName: '',
+        lastName: '',
+        grade: 0,
+      };
     } catch {
       // Error is handled by store
     }

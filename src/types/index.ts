@@ -57,8 +57,9 @@ export interface Match {
   awayTeamId: number;
   matchNumber: number;
   matchType: 'REGULAR' | 'SEMI_FINAL' | 'FINAL';
-  homeTeamScore?: number;
-  awayTeamScore?: number;
+  homeTeamScore?: number | null;
+  awayTeamScore?: number | null;
+  isPlayed?: boolean; // Indicates if match has started/been scored
   createdAt?: string;
   updatedAt?: string;
 }

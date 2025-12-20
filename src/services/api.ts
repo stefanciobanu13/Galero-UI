@@ -27,7 +27,7 @@ export const playerService = {
   update: (id: number, player: Player) => api.put<Player>(`/players/${id}`, player),
   delete: (id: number) => api.delete(`/players/${id}`),
   searchByName: (firstName: string, lastName: string) => 
-    api.get<Player[]>('/players/search', {
+    api.get<Player>('/players/name', {
       params: { firstName, lastName }
     }),
 };

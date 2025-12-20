@@ -21,6 +21,7 @@ export const useEditionsStore = defineStore('editions', () => {
   const players = ref<Player[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const isCreatingNewEdition = ref(false);
 
   // Local storage persistence key
   const STORAGE_KEY = 'galero_editions_state';
@@ -47,7 +48,9 @@ export const useEditionsStore = defineStore('editions', () => {
     const teamStandings = teams.value.map(team => {
       const teamMatches = matches.value.filter(
         m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
-             (m.matchType === 'REGULAR' || m.matchType === 'SEMI_FINAL' || m.matchType === 'FINAL')
+             (m.matchType === 'REGULAR' || m.matchType === 'SEMI_FINAL' || m.matchType === 'FINAL') &&
+             // Only count matches that are marked as played
+             m.isPlayed === true
       );
 
       let points = 0;
@@ -76,7 +79,7 @@ export const useEditionsStore = defineStore('editions', () => {
         goalsFor,
         goalsAgainst,
         goalDifference: goalsFor - goalsAgainst,
-        played: teamMatches.filter(m => m.homeTeamScore !== undefined && m.awayTeamScore !== undefined).length,
+        played: teamMatches.length,
       };
     });
 
@@ -110,7 +113,11 @@ export const useEditionsStore = defineStore('editions', () => {
         const state = JSON.parse(saved);
         currentEdition.value = state.currentEdition;
         teams.value = state.teams;
-        matches.value = state.matches;
+        // Ensure isPlayed is set for each match (for backwards compatibility)
+        matches.value = (state.matches || []).map((m: any) => ({
+          ...m,
+          isPlayed: m.isPlayed ?? false,
+        }));
         goals.value = state.goals;
       }
     } catch (e) {
@@ -144,6 +151,7 @@ export const useEditionsStore = defineStore('editions', () => {
       const matchesResponse = await matchService.getByEdition(edition.editionId!);
       matches.value = matchesResponse.data.map(match => ({
         ...match,
+        isPlayed: false, // Will be updated based on goals
         goals: [],
       }));
 
@@ -152,6 +160,14 @@ export const useEditionsStore = defineStore('editions', () => {
       goals.value = goalsResponse.data.filter(g => 
         matches.value.some(m => m.matchId === g.matchId)
       );
+
+      // Mark matches as played if they have goals
+      matches.value.forEach(match => {
+        const hasGoals = goals.value.some(g => g.matchId === match.matchId);
+        if (hasGoals) {
+          match.isPlayed = true;
+        }
+      });
 
       // Update match scores based on goals
       updateMatchScores();
@@ -228,14 +244,26 @@ export const useEditionsStore = defineStore('editions', () => {
         goalType,
       };
 
-      const response = await goalService.create(goalData);
-      goals.value.push(response.data);
+      // If creating new edition, just add to local state
+      if (isCreatingNewEdition.value) {
+        goals.value.push(goalData);
+      } else {
+        // If editing existing edition, save to database
+        const response = await goalService.create(goalData);
+        goals.value.push(response.data);
+      }
+
+      // Automatically mark the match as played when a goal is added
+      const match = matches.value.find(m => m.matchId === matchId);
+      if (match && !match.isPlayed) {
+        match.isPlayed = true;
+      }
 
       // Update match scores
       updateMatchScores();
 
       saveState();
-      return response.data;
+      return goalData;
     } catch (e: any) {
       error.value = e.message || 'Failed to add goal';
       throw e;
@@ -245,8 +273,14 @@ export const useEditionsStore = defineStore('editions', () => {
   // Remove goal
   const removeGoal = async (goalId: number) => {
     try {
-      await goalService.delete(goalId);
-      goals.value = goals.value.filter(g => g.goalId !== goalId);
+      // If creating new edition, just remove from local state
+      if (isCreatingNewEdition.value) {
+        goals.value = goals.value.filter(g => g.goalId !== goalId);
+      } else {
+        // If editing existing edition, delete from database
+        await goalService.delete(goalId);
+        goals.value = goals.value.filter(g => g.goalId !== goalId);
+      }
 
       // Update match scores
       updateMatchScores();
@@ -258,22 +292,39 @@ export const useEditionsStore = defineStore('editions', () => {
     }
   };
 
-  // Update match scores based on goals
+  // Update match scores based on goals (only for played matches)
   const updateMatchScores = () => {
     matches.value.forEach(match => {
       const matchGoals = goals.value.filter(g => g.matchId === match.matchId);
-      
-      const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'OWN_GOAL').length;
-      const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'OWN_GOAL').length;
-      
-      // Add own goals
-      const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'OWN_GOAL').length;
-      const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'OWN_GOAL').length;
-
-      match.homeTeamScore = homeGoals + awayOwnGoals;
-      match.awayTeamScore = awayGoals + homeOwnGoals;
       match.goals = matchGoals;
+      
+      // Only calculate scores for matches that are marked as played
+      if (match.isPlayed) {
+        const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'OWN_GOAL').length;
+        const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'OWN_GOAL').length;
+        
+        // Add own goals
+        const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'OWN_GOAL').length;
+        const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'OWN_GOAL').length;
+
+        match.homeTeamScore = homeGoals + awayOwnGoals;
+        match.awayTeamScore = awayGoals + homeOwnGoals;
+      } else {
+        // Keep scores as null for unplayed matches
+        match.homeTeamScore = null;
+        match.awayTeamScore = null;
+      }
     });
+  };
+
+  // Mark a match as played (enables score tracking)
+  const markMatchAsPlayed = (matchId: number, isPlayed: boolean = true) => {
+    const match = matches.value.find(m => m.matchId === matchId);
+    if (match) {
+      match.isPlayed = isPlayed;
+      updateMatchScores();
+      saveState();
+    }
   };
 
   // Save all changes to backend
@@ -322,6 +373,12 @@ export const useEditionsStore = defineStore('editions', () => {
     goals.value = [];
     players.value = [];
     error.value = null;
+    isCreatingNewEdition.value = false;
+  };
+
+  // Set creating new edition mode
+  const setCreatingNewEdition = (creating: boolean) => {
+    isCreatingNewEdition.value = creating;
   };
 
   return {
@@ -337,11 +394,13 @@ export const useEditionsStore = defineStore('editions', () => {
     createMatches,
     addGoal,
     removeGoal,
+    markMatchAsPlayed,
     saveEdition,
     getTeamColor,
     getTeamPlayers,
     loadState,
     resetStore,
+    setCreatingNewEdition,
     $reset: resetStore,
   };
 });

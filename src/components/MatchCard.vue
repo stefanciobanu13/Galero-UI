@@ -4,32 +4,68 @@
       <!-- Match Header -->
       <div class="d-flex justify-space-between align-center mb-4">
         <span class="text-caption font-weight-bold">Match {{ match.matchNumber }}</span>
-        <span class="text-caption">{{ matchTypeLabel }}</span>
+        <v-chip 
+          :color="match.isPlayed ? 'success' : 'grey'" 
+          size="small"
+          variant="tonal"
+        >
+          {{ match.isPlayed ? 'Played' : 'Not played' }}
+        </v-chip>
       </div>
 
       <!-- Teams & Score -->
-      <div class="match-header d-flex justify-space-between align-center mb-4">
-        <div class="team-info text-center flex-grow-1">
-          <div class="team-color" :style="{ backgroundColor: getHomeTeamColor }" />
-          <p class="text-caption font-weight-bold text-capitalize mt-2">
-            {{ homeTeam?.color || 'Unknown' }}
-          </p>
-        </div>
-
-        <div class="score-display mx-3">
-          <div class="score-box">
-            <span class="score">{{ match.homeTeamScore || 0 }}</span>
-            <span class="divider">-</span>
-            <span class="score">{{ match.awayTeamScore || 0 }}</span>
+      <div class="match-header mb-4 d-flex justify-space-between align-center">
+        <!-- Home Team -->
+        <div class="team-section">
+          <div class="team-header d-flex align-center gap-3">
+            <div class="team-color" :style="{ backgroundColor: getHomeTeamColor }" />
+            <div>
+              <p class="text-caption font-weight-bold text-capitalize m-0">
+                {{ homeTeam?.color || 'Unknown' }}
+              </p>
+              <p class="text-h6 font-weight-bold m-0">{{ match.isPlayed ? (match.homeTeamScore ?? 0) : '-' }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="team-info text-center flex-grow-1">
-          <div class="team-color" :style="{ backgroundColor: getAwayTeamColor }" />
-          <p class="text-caption font-weight-bold text-capitalize mt-2">
-            {{ awayTeam?.color || 'Unknown' }}
-          </p>
+        <!-- Away Team -->
+        <div class="team-section">
+          <div class="team-header d-flex align-center gap-3 flex-row-reverse">
+            <div class="team-color" :style="{ backgroundColor: getAwayTeamColor }" />
+            <div class="text-right">
+              <p class="text-caption font-weight-bold text-capitalize m-0">
+                {{ awayTeam?.color || 'Unknown' }}
+              </p>
+              <p class="text-h6 font-weight-bold m-0">{{ match.isPlayed ? (match.awayTeamScore ?? 0) : '-' }}</p>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <!-- Mark as Played Button (for 0-0 draws) -->
+      <div class="mb-4 text-center" v-if="!match.isPlayed">
+        <v-btn
+          @click="toggleMatchPlayed"
+          color="primary"
+          variant="outlined"
+          size="small"
+          prepend-icon="mdi-play-circle"
+        >
+          Mark as Played (0-0)
+        </v-btn>
+        <p class="text-caption text-grey mt-2">
+          Click to mark this match as played with 0-0 score, or add goals below to automatically start tracking
+        </p>
+      </div>
+      <div class="mb-4 text-center" v-else>
+        <v-btn
+          @click="toggleMatchPlayed"
+          color="warning"
+          variant="text"
+          size="x-small"
+        >
+          Reset to Not Played
+        </v-btn>
       </div>
 
       <v-divider class="my-4" />
@@ -288,6 +324,11 @@ const removeGoal = async (goalId: number) => {
     console.error('Failed to remove goal:', e);
   }
 };
+
+const toggleMatchPlayed = () => {
+  editionsStore.markMatchAsPlayed(props.match.matchId!, !props.match.isPlayed);
+  emit('goalAdded');
+};
 </script>
 
 <style scoped>
@@ -301,39 +342,22 @@ const removeGoal = async (goalId: number) => {
   border-radius: 8px;
 }
 
-.team-info {
-  flex: 1;
+.team-section {
+  width: 100%;
+}
+
+.team-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .team-color {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  margin: 0 auto;
+  flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.score-display {
-  min-width: 80px;
-}
-
-.score-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.score {
-  min-width: 32px;
-  text-align: center;
-}
-
-.divider {
-  color: #999;
 }
 
 .scorers-list {
