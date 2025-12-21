@@ -15,9 +15,6 @@
             <div class="text-center mb-6">
               <div id="google-signin-button" ref="googleButtonContainer" />
             </div>
-
-
-
             <v-alert
               v-if="errorMessage"
               type="error"

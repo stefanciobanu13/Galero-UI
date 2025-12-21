@@ -56,7 +56,7 @@ export interface Match {
   homeTeamId: number;
   awayTeamId: number;
   matchNumber: number;
-  matchType: 'REGULAR' | 'SEMI_FINAL' | 'FINAL';
+  matchType: 'group' | 'small_final' | 'big_final';
   homeTeamScore?: number | null;
   awayTeamScore?: number | null;
   isPlayed?: boolean; // Indicates if match has started/been scored
@@ -69,7 +69,7 @@ export interface Goal {
   matchId: number;
   teamId: number;
   playerId: number;
-  goalType: 'NORMAL' | 'PENALTY' | 'OWN_GOAL';
+  goalType: 'normal' | 'penalty' | 'own_goal';
   createdAt?: string;
   updatedAt?: string;
 }

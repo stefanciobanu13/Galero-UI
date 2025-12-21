@@ -75,11 +75,11 @@
             closable
             @click:close="removeGoal(goal.goalId!)"
             class="mr-1 mb-1"
-            :class="{ 'own-goal-chip': goal.goalType === 'OWN_GOAL' }"
+            :class="{ 'own-goal-chip': goal.goalType === 'own_goal' }"
           >
-            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'OWN_GOAL' }">{{ getPlayerName(goal.playerId) }}</span>
-            <span v-if="goal.goalType === 'PENALTY'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs text-red">(OG)</span>
+            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'own_goal' }">{{ getPlayerName(goal.playerId) }}</span>
+            <span v-if="goal.goalType === 'penalty'" class="text-xs">(P)</span>
+            <span v-if="goal.goalType === 'own_goal'" class="text-xs text-red">(OG)</span>
           </v-chip>
         </div>
         <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
@@ -133,11 +133,11 @@
             closable
             @click:close="removeGoal(goal.goalId!)"
             class="mr-1 mb-1"
-            :class="{ 'own-goal-chip': goal.goalType === 'OWN_GOAL' }"
+            :class="{ 'own-goal-chip': goal.goalType === 'own_goal' }"
           >
-            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'OWN_GOAL' }">{{ getPlayerName(goal.playerId) }}</span>
-            <span v-if="goal.goalType === 'PENALTY'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'OWN_GOAL'" class="text-xs text-red">(OG)</span>
+            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'own_goal' }">{{ getPlayerName(goal.playerId) }}</span>
+            <span v-if="goal.goalType === 'penalty'" class="text-xs">(P)</span>
+            <span v-if="goal.goalType === 'own_goal'" class="text-xs text-red">(OG)</span>
           </v-chip>
         </div>
         <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
@@ -196,13 +196,13 @@ const editionsStore = useEditionsStore();
 // State for new goals
 const homeTeamNewGoalPlayerId = ref<number | null>(null);
 const awayTeamNewGoalPlayerId = ref<number | null>(null);
-const homeTeamGoalType = ref<'NORMAL' | 'PENALTY' | 'OWN_GOAL'>('NORMAL');
-const awayTeamGoalType = ref<'NORMAL' | 'PENALTY' | 'OWN_GOAL'>('NORMAL');
+const homeTeamGoalType = ref<'normal' | 'penalty' | 'own_goal'>('normal');
+const awayTeamGoalType = ref<'normal' | 'penalty' | 'own_goal'>('normal');
 
 const goalTypes = [
-  { title: 'Normal Goal', value: 'NORMAL' },
-  { title: 'Penalty', value: 'PENALTY' },
-  { title: 'Own Goal', value: 'OWN_GOAL' },
+  { title: 'Normal Goal', value: 'normal' },
+  { title: 'Penalty', value: 'penalty' },
+  { title: 'Own Goal', value: 'own_goal' },
 ];
 
 const colorMap: Record<string, string> = {
@@ -246,15 +246,15 @@ const matchGoals = computed(() =>
 
 const homeTeamGoals = computed(() =>
   matchGoals.value.filter(g => 
-    (g.teamId === props.match.homeTeamId && g.goalType !== 'OWN_GOAL') ||
-    (g.teamId === props.match.awayTeamId && g.goalType === 'OWN_GOAL')
+    (g.teamId === props.match.homeTeamId && g.goalType !== 'own_goal') ||
+    (g.teamId === props.match.awayTeamId && g.goalType === 'own_goal')
   )
 );
 
 const awayTeamGoals = computed(() =>
   matchGoals.value.filter(g =>
-    (g.teamId === props.match.awayTeamId && g.goalType !== 'OWN_GOAL') ||
-    (g.teamId === props.match.homeTeamId && g.goalType === 'OWN_GOAL')
+    (g.teamId === props.match.awayTeamId && g.goalType !== 'own_goal') ||
+    (g.teamId === props.match.homeTeamId && g.goalType === 'own_goal')
   )
 );
 
@@ -275,9 +275,9 @@ const getAwayTeamColor = computed(() => {
 });
 
 const matchTypeLabel = computed(() => {
-  if (props.match.matchType === 'REGULAR') return 'Regular';
-  if (props.match.matchType === 'SEMI_FINAL') return 'Small Final';
-  if (props.match.matchType === 'FINAL') return 'Big Final';
+  if (props.match.matchType === 'group') return 'Regular';
+  if (props.match.matchType === 'small_final') return 'Small Final';
+  if (props.match.matchType === 'big_final') return 'Big Final';
   return '';
 });
 
@@ -297,7 +297,7 @@ const addHomeTeamGoal = async () => {
         homeTeamGoalType.value
       );
       homeTeamNewGoalPlayerId.value = null;
-      homeTeamGoalType.value = 'NORMAL';
+      homeTeamGoalType.value = 'normal';
       emit('goalAdded');
     } catch (e) {
       console.error('Failed to add goal:', e);
@@ -315,7 +315,7 @@ const addAwayTeamGoal = async () => {
         awayTeamGoalType.value
       );
       awayTeamNewGoalPlayerId.value = null;
-      awayTeamGoalType.value = 'NORMAL';
+      awayTeamGoalType.value = 'normal';
       emit('goalAdded');
     } catch (e) {
       console.error('Failed to add goal:', e);

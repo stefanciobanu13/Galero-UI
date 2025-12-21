@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Edition, Team, Match, Goal, Player } from '../types';
-import { editionService, teamService, matchService, goalService, attendanceService, playerService } from '../services/api';
+import { editionService, matchService, goalService } from '../services/api';
 
 interface TeamWithPlayers extends Team {
   players: Player[];
@@ -27,20 +27,20 @@ export const useEditionsStore = defineStore('editions', () => {
   const STORAGE_KEY = 'galero_editions_state';
 
   const MATCH_ORDER = [
-    { homeColor: 'Green', awayColor: 'Orange', number: 1, type: 'REGULAR' as const },
-    { homeColor: 'Blue', awayColor: 'Gray', number: 2, type: 'REGULAR' as const },
-    { homeColor: 'Orange', awayColor: 'Blue', number: 3, type: 'REGULAR' as const },
-    { homeColor: 'Gray', awayColor: 'Green', number: 4, type: 'REGULAR' as const },
-    { homeColor: 'Green', awayColor: 'Blue', number: 5, type: 'REGULAR' as const },
-    { homeColor: 'Orange', awayColor: 'Gray', number: 6, type: 'REGULAR' as const },
-    { homeColor: 'Blue', awayColor: 'Green', number: 7, type: 'REGULAR' as const },
-    { homeColor: 'Gray', awayColor: 'Orange', number: 8, type: 'REGULAR' as const },
-    { homeColor: 'Green', awayColor: 'Gray', number: 9, type: 'REGULAR' as const },
-    { homeColor: 'Blue', awayColor: 'Orange', number: 10, type: 'REGULAR' as const },
-    { homeColor: 'Orange', awayColor: 'Green', number: 11, type: 'REGULAR' as const },
-    { homeColor: 'Gray', awayColor: 'Blue', number: 12, type: 'REGULAR' as const },
-    { homeColor: 'placeholder', awayColor: 'placeholder', number: 13, type: 'SEMI_FINAL' as const }, // Small final - determined by standings
-    { homeColor: 'placeholder', awayColor: 'placeholder', number: 14, type: 'FINAL' as const }, // Big final - determined by standings
+    { homeColor: 'green', awayColor: 'orange', number: 1, type: 'group' as const },
+    { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'group' as const },
+    { homeColor: 'orange', awayColor: 'blue', number: 3, type: 'group' as const },
+    { homeColor: 'gray', awayColor: 'green', number: 4, type: 'group' as const },
+    { homeColor: 'green', awayColor: 'blue', number: 5, type: 'group' as const },
+    { homeColor: 'orange', awayColor: 'gray', number: 6, type: 'group' as const },
+    { homeColor: 'blue', awayColor: 'green', number: 7, type: 'group' as const },
+    { homeColor: 'gray', awayColor: 'orange', number: 8, type: 'group' as const },
+    { homeColor: 'green', awayColor: 'gray', number: 9, type: 'group' as const },
+    { homeColor: 'blue', awayColor: 'orange', number: 10, type: 'group' as const },
+    { homeColor: 'orange', awayColor: 'green', number: 11, type: 'group' as const },
+    { homeColor: 'gray', awayColor: 'blue', number: 12, type: 'group' as const },
+    { homeColor: 'placeholder', awayColor: 'placeholder', number: 13, type: 'small_final' as const }, // Small final - determined by standings
+    { homeColor: 'placeholder', awayColor: 'placeholder', number: 14, type: 'big_final' as const }, // Big final - determined by standings
   ];
 
   // Computed standings - Only based on REGULAR matches for determining final placements
@@ -48,7 +48,7 @@ export const useEditionsStore = defineStore('editions', () => {
     const teamStandings = teams.value.map(team => {
       const teamMatches = matches.value.filter(
         m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
-             m.matchType === 'REGULAR' &&
+             m.matchType === 'group' &&
              // Only count matches that are marked as played
              m.isPlayed === true
       );
@@ -90,24 +90,79 @@ export const useEditionsStore = defineStore('editions', () => {
     });
   });
 
+  // Calculate standings inline (used by updateFinalMatchTeams to avoid circular dependency)
+  const calculateStandings = (currentMatches: MatchData[]) => {
+    console.log("Standings triggered");
+    const teamStandings = teams.value.map(team => {
+      const teamMatches = currentMatches.filter(
+        m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
+             m.matchType === 'group' &&
+             m.isPlayed === true
+      );
+
+      let points = 0;
+      let goalsFor = 0;
+      let goalsAgainst = 0;
+
+      teamMatches.forEach(match => {
+        const isHome = match.homeTeamId === team.teamId;
+        const teamScore = isHome ? (match.homeTeamScore || 0) : (match.awayTeamScore || 0);
+        const opponentScore = isHome ? (match.awayTeamScore || 0) : (match.homeTeamScore || 0);
+
+        goalsFor += teamScore;
+        goalsAgainst += opponentScore;
+
+        if (teamScore > opponentScore) {
+          points += 3;
+        } else if (teamScore === opponentScore) {
+          points += 1;
+        }
+      });
+
+      return {
+        teamId: team.teamId!,
+        color: team.color,
+        points,
+        goalsFor,
+        goalsAgainst,
+        goalDifference: goalsFor - goalsAgainst,
+        played: teamMatches.length,
+      };
+    });
+
+    return teamStandings.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return b.goalDifference - a.goalDifference;
+    });
+  };
+
   // Update final match teams based on current standings
-  const updateFinalMatchTeams = () => {
-    const sorted = standings.value;
-    if (sorted.length < 4) return;
+  const updateFinalMatchTeams = (currentMatches: MatchData[]) => {
+    const sorted = calculateStandings(currentMatches);
+    if (sorted.length < 4) return currentMatches;
 
-    // Update Small Final (SEMI_FINAL): 3rd vs 4th
-    const smallFinal = matches.value.find(m => m.matchType === 'SEMI_FINAL');
-    if (smallFinal && sorted[2]?.teamId && sorted[3]?.teamId) {
-      smallFinal.homeTeamId = sorted[2].teamId;
-      smallFinal.awayTeamId = sorted[3].teamId;
-    }
+    // Create new matches array with updated final match teams
+    return currentMatches.map(match => {
+      // Update Small Final: 3rd vs 4th
+      if (match.matchType === 'small_final' && sorted[2]?.teamId && sorted[3]?.teamId) {
+        return {
+          ...match,
+          homeTeamId: sorted[2].teamId,
+          awayTeamId: sorted[3].teamId,
+        };
+      }
 
-    // Update Big Final (FINAL): 1st vs 2nd
-    const bigFinal = matches.value.find(m => m.matchType === 'FINAL');
-    if (bigFinal && sorted[0]?.teamId && sorted[1]?.teamId) {
-      bigFinal.homeTeamId = sorted[0].teamId;
-      bigFinal.awayTeamId = sorted[1].teamId;
-    }
+      // Update Big Final: 1st vs 2nd
+      if (match.matchType === 'big_final' && sorted[0]?.teamId && sorted[1]?.teamId) {
+        return {
+          ...match,
+          homeTeamId: sorted[0].teamId,
+          awayTeamId: sorted[1].teamId,
+        };
+      }
+
+      return match;
+    });
   };
 
   // Save state to localStorage
@@ -152,44 +207,53 @@ export const useEditionsStore = defineStore('editions', () => {
       error.value = null;
       currentEdition.value = edition;
 
-      // Fetch teams for this edition
-      const teamsResponse = await teamService.getByEdition(edition.editionId!);
-      teams.value = teamsResponse.data.map(team => ({
-        ...team,
-        players: [],
+      // Fetch full edition data from backend
+      const fullEditionResponse = await editionService.getFull(edition.editionId!);
+      const fullEditionData = fullEditionResponse.data;
+
+      // Map teams from the response
+      teams.value = fullEditionData.teams.map((team: any) => ({
+        teamId: team.teamId,
+        editionId: fullEditionData.editionId,
+        color: team.teamColor as 'green' | 'orange' | 'gray' | 'blue',
+        players: team.players || [],
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt,
       }));
 
-      // Fetch attendance records to get players for this edition
-      const attendanceResponse = await attendanceService.getAttendanceByEdition(edition.editionId!);
-      const playerIds = new Set(attendanceResponse.data.map(a => a.playerId));
-      
-      // Fetch player details
-      const allPlayers = await playerService.getAll();
-      players.value = allPlayers.data.filter(p => playerIds.has(p.playerId!));
-
-      // Fetch matches for this edition
-      const matchesResponse = await matchService.getByEdition(edition.editionId!);
-      matches.value = matchesResponse.data.map(match => ({
-        ...match,
-        isPlayed: false, // Will be updated based on goals
-        goals: [],
+      // Map matches from the response
+      matches.value = fullEditionData.matches.map((match: any) => ({
+        matchId: match.matchId,
+        editionId: fullEditionData.editionId,
+        homeTeamId: match.team1Id,
+        awayTeamId: match.team2Id,
+        matchNumber: match.stage,
+        matchType: match.matchType as 'group' | 'small_final' | 'big_final',
+        homeTeamScore: match.team1Score,
+        awayTeamScore: match.team2Score,
+        isPlayed: match.goals && match.goals.length > 0,
+        goals: match.goals || [],
+        createdAt: match.createdAt,
+        updatedAt: match.updatedAt,
       }));
 
-      // Fetch goals for all matches
-      const goalsResponse = await goalService.getAll();
-      goals.value = goalsResponse.data.filter(g => 
-        matches.value.some(m => m.matchId === g.matchId)
+      // Flatten all goals from matches
+      goals.value = fullEditionData.matches.flatMap((match: any) =>
+        (match.goals || []).map((goal: any) => ({
+          goalId: goal.goalId,
+          matchId: match.matchId,
+          teamId: goal.teamId,
+          playerId: goal.playerId,
+          goalType: goal.goalType as 'normal' | 'penalty' | 'own_goal',
+          createdAt: goal.createdAt,
+          updatedAt: goal.updatedAt,
+        }))
       );
 
-      // Mark matches as played if they have goals
-      matches.value.forEach(match => {
-        const hasGoals = goals.value.some(g => g.matchId === match.matchId);
-        if (hasGoals) {
-          match.isPlayed = true;
-        }
-      });
+      // Extract all players from teams
+      players.value = fullEditionData.teams.flatMap((team: any) => team.players || []);
 
-      // Update match scores based on goals
+      // Update match scores based on goals (should already be in response, but recalculate to be sure)
       updateMatchScores();
 
       saveState();
@@ -211,17 +275,17 @@ export const useEditionsStore = defineStore('editions', () => {
         let awayTeamId: number | null = null;
 
         // Find team IDs by color
-        if (matchTemplate.type === 'REGULAR') {
+        if (matchTemplate.type === 'group') {
           const homeTeam = teams.value.find(t => t.color === matchTemplate.homeColor);
           const awayTeam = teams.value.find(t => t.color === matchTemplate.awayColor);
           homeTeamId = homeTeam?.teamId || null;
           awayTeamId = awayTeam?.teamId || null;
-        } else if (matchTemplate.type === 'SEMI_FINAL') {
+        } else if (matchTemplate.type === 'small_final') {
           // Small final: 3rd vs 4th
           const sorted = standings.value;
           homeTeamId = sorted[2]?.teamId || null;
           awayTeamId = sorted[3]?.teamId || null;
-        } else if (matchTemplate.type === 'FINAL') {
+        } else if (matchTemplate.type === 'big_final') {
           // Big final: 1st vs 2nd
           const sorted = standings.value;
           homeTeamId = sorted[0]?.teamId || null;
@@ -255,7 +319,7 @@ export const useEditionsStore = defineStore('editions', () => {
   };
 
   // Add goal to match
-  const addGoal = async (matchId: number, playerId: number, teamId: number, goalType: 'NORMAL' | 'PENALTY' | 'OWN_GOAL' = 'NORMAL') => {
+  const addGoal = async (matchId: number, playerId: number, teamId: number, goalType: 'normal' | 'penalty' | 'own_goal' = 'normal') => {
     try {
       const goalData: Goal = {
         matchId,
@@ -276,13 +340,7 @@ export const useEditionsStore = defineStore('editions', () => {
         goals.value.push(response.data);
       }
 
-      // Automatically mark the match as played when a goal is added
-      const match = matches.value.find(m => m.matchId === matchId);
-      if (match && !match.isPlayed) {
-        match.isPlayed = true;
-      }
-
-      // Update match scores
+      // Update match scores (this will automatically mark match as played when goals exist)
       updateMatchScores();
 
       saveState();
@@ -317,41 +375,65 @@ export const useEditionsStore = defineStore('editions', () => {
 
   // Update match scores based on goals (only for played matches)
   const updateMatchScores = () => {
-    matches.value.forEach(match => {
+    // Create a new array to ensure Vue reactivity triggers properly
+    matches.value = matches.value.map(match => {
       const matchGoals = goals.value.filter(g => g.matchId === match.matchId);
-      match.goals = matchGoals;
       
-      // Only calculate scores for matches that are marked as played
-      if (match.isPlayed) {
+      // If we have goals, ALWAYS recalculate scores and mark as played
+      if (matchGoals.length > 0) {
         // Count regular goals for each team
-        const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'OWN_GOAL').length;
-        const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'OWN_GOAL').length;
+        const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'own_goal').length;
+        const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'own_goal').length;
         
         // Count own goals - credited to the opposing team
-        const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'OWN_GOAL').length;
-        const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'OWN_GOAL').length;
+        const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'own_goal').length;
+        const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'own_goal').length;
 
-        match.homeTeamScore = homeGoals + homeOwnGoals;
-        match.awayTeamScore = awayGoals + awayOwnGoals;
+        return {
+          ...match,
+          goals: matchGoals,
+          homeTeamScore: homeGoals + homeOwnGoals,
+          awayTeamScore: awayGoals + awayOwnGoals,
+          isPlayed: true,
+        };
       } else {
-        // Keep scores as null for unplayed matches
-        match.homeTeamScore = null;
-        match.awayTeamScore = null;
+        // No goals - check if we have a score from backend
+        const hasScore = match.homeTeamScore !== null && match.homeTeamScore !== undefined && 
+                         match.awayTeamScore !== null && match.awayTeamScore !== undefined;
+        
+        if (hasScore) {
+          // Keep the backend scores
+          return {
+            ...match,
+            goals: matchGoals,
+            isPlayed: true,
+          };
+        } else {
+          // No goals and no score - match hasn't been played
+          return {
+            ...match,
+            goals: matchGoals,
+            homeTeamScore: null,
+            awayTeamScore: null,
+            isPlayed: false,
+          };
+        }
       }
     });
 
     // Update final match teams based on current standings
-    updateFinalMatchTeams();
+    matches.value = updateFinalMatchTeams(matches.value);
   };
 
-  // Mark a match as played (enables score tracking)
+  // Mark a match as played (enables score tracking for 0-0 draws)
   const markMatchAsPlayed = (matchId: number, isPlayed: boolean = true) => {
-    const match = matches.value.find(m => m.matchId === matchId);
-    if (match) {
-      match.isPlayed = isPlayed;
-      updateMatchScores();
-      saveState();
-    }
+    // Update matches array with new isPlayed state to ensure reactivity
+    matches.value = matches.value.map(m => 
+      m.matchId === matchId 
+        ? { ...m, isPlayed, homeTeamScore: isPlayed ? 0 : null, awayTeamScore: isPlayed ? 0 : null }
+        : m
+    );
+    saveState();
   };
 
   // Save all changes to backend

@@ -17,7 +17,7 @@
             </v-col>
             <v-col cols="12" md="6">
               <v-row class="gap-2">
-                <v-col cols="6">
+                <v-col cols="12">
                   <v-btn
                     @click="startCreatingNew"
                     color="primary"
@@ -25,17 +25,6 @@
                     prepend-icon="mdi-plus"
                   >
                     Add New Edition
-                  </v-btn>
-                </v-col>
-                <!-- TODO: DELETE THIS BUTTON AFTER TESTING -->
-                <v-col cols="6">
-                  <v-btn
-                    @click="loadMockData"
-                    color="warning"
-                    block
-                    prepend-icon="mdi-database"
-                  >
-                    Load Mock Data
                   </v-btn>
                 </v-col>
               </v-row>
@@ -330,8 +319,6 @@ import { useEditionsStore } from '../stores/editions';
 import { editionService, teamService, matchService, teamPlayerService, playerService, goalService } from '../services/api';
 import MatchCard from '../components/MatchCard.vue';
 import type { Edition } from '../types';
-// TODO: DELETE THIS IMPORT AFTER TESTING
-import { mockEdition, mockPlayers, mockTeams, mockMatches, mockGoals } from '../utils/mockData';
 
 const editionsStore = useEditionsStore();
 const isInitializing = ref(false);
@@ -348,11 +335,11 @@ const editionForm = ref({
 });
 
 const teams = computed(() => editionsStore.teams);
-const regularMatches = computed(() => 
-  editionsStore.matches.filter(m => m.matchType === 'REGULAR')
+const regularMatches = computed(() =>
+  editionsStore.matches.filter(m => m.matchType === 'group')
 );
 const finalMatches = computed(() =>
-  editionsStore.matches.filter(m => m.matchType !== 'REGULAR')
+  editionsStore.matches.filter(m => m.matchType !== 'group')
 );
 
 const colorMap: Record<string, string> = {
@@ -391,160 +378,6 @@ const startCreatingNew = () => {
       : 1),
     date: '',
   };
-};
-
-// TODO: DELETE THIS FUNCTION AFTER TESTING
-const loadMockData = async () => {
-  try {
-    isCreatingNew.value = true;
-    editionsStore.resetStore();
-    editionsStore.setCreatingNewEdition(true);
-    
-    // Set edition form with mock data
-    editionForm.value = {
-      editionNumber: mockEdition.editionNumber,
-      date: mockEdition.date,
-    };
-    
-    // Fetch actual players from database
-    const playersResponse = await playerService.getAll();
-    const databasePlayers = playersResponse.data;
-    
-    if (databasePlayers.length < 24) {
-      alert('Need at least 24 players in the database to load mock data (6 per team × 4 teams)');
-      return;
-    }
-    
-    // Team definitions
-    const teamColors: Array<'green' | 'orange' | 'gray' | 'blue'> = ['green', 'orange', 'gray', 'blue'];
-    const playersPerTeam = 6;
-    const teamIdMap: Record<string, number> = {};
-    const playersByTeam: Record<string, number[]> = {
-      green: [],
-      orange: [],
-      gray: [],
-      blue: [],
-    };
-    
-    // Create teams with actual database players
-    teamColors.forEach((color, idx) => {
-      const teamId = idx + 1;
-      const teamPlayers = databasePlayers.slice(idx * playersPerTeam, (idx + 1) * playersPerTeam);
-      
-      const teamData: any = {
-        teamId,
-        editionId: 0,
-        color,
-        teamColor: color,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        players: teamPlayers,
-      };
-      
-      editionsStore.teams.push(teamData);
-      teamIdMap[color] = teamId;
-      playersByTeam[color] = teamPlayers.map(p => p.playerId || 0);
-    });
-    
-    // Add mock matches - mockMatches uses teamId numbers directly (1=green, 2=orange, 3=gray, 4=blue)
-    const matches = mockMatches(0);
-    matches.forEach((match, idx) => {
-      const matchData: any = {
-        matchId: idx + 1,
-        editionId: 0,
-        homeTeamId: match.homeTeamId, // Already numeric (1, 2, 3, 4)
-        awayTeamId: match.awayTeamId, // Already numeric (1, 2, 3, 4)
-        matchNumber: match.matchNumber,
-        matchType: match.matchType,
-        homeTeamScore: match.homeTeamScore,
-        awayTeamScore: match.awayTeamScore,
-        isPlayed: idx < 12 ? true : false, // Only regular matches (0-11) are played
-        goals: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      editionsStore.matches.push(matchData);
-    });
-    
-    // Add mock goals using real player IDs from database
-    // Goals use matchId directly (1-14) which matches match.matchId
-    const mockGoalsTemplate = [
-      // Match 1: Green 2-1 Orange
-      { matchId: 1, teamColor: 'green', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 1, teamColor: 'green', playerIdx: 1, type: 'NORMAL' as const },
-      { matchId: 1, teamColor: 'orange', playerIdx: 0, type: 'NORMAL' as const },
-      // Match 2: Blue 1-1 Gray
-      { matchId: 2, teamColor: 'blue', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 2, teamColor: 'gray', playerIdx: 0, type: 'NORMAL' as const },
-      // Match 3: Orange 3-2 Blue
-      { matchId: 3, teamColor: 'orange', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 3, teamColor: 'orange', playerIdx: 1, type: 'NORMAL' as const },
-      { matchId: 3, teamColor: 'orange', playerIdx: 2, type: 'NORMAL' as const },
-      { matchId: 3, teamColor: 'blue', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 3, teamColor: 'blue', playerIdx: 1, type: 'NORMAL' as const },
-      // Match 4: Gray 0-2 Green
-      { matchId: 4, teamColor: 'green', playerIdx: 2, type: 'NORMAL' as const },
-      { matchId: 4, teamColor: 'green', playerIdx: 3, type: 'NORMAL' as const },
-      // Match 5: Green 1-0 Blue
-      { matchId: 5, teamColor: 'green', playerIdx: 4, type: 'PENALTY' as const },
-      // Match 6: Orange 2-2 Gray
-      { matchId: 6, teamColor: 'orange', playerIdx: 3, type: 'NORMAL' as const },
-      { matchId: 6, teamColor: 'orange', playerIdx: 4, type: 'NORMAL' as const },
-      { matchId: 6, teamColor: 'gray', playerIdx: 1, type: 'NORMAL' as const },
-      { matchId: 6, teamColor: 'gray', playerIdx: 2, type: 'NORMAL' as const },
-      // Match 7: Blue 3-1 Green
-      { matchId: 7, teamColor: 'blue', playerIdx: 2, type: 'NORMAL' as const },
-      { matchId: 7, teamColor: 'blue', playerIdx: 3, type: 'NORMAL' as const },
-      { matchId: 7, teamColor: 'blue', playerIdx: 4, type: 'NORMAL' as const },
-      { matchId: 7, teamColor: 'green', playerIdx: 5, type: 'NORMAL' as const },
-      // Match 8: Gray 1-0 Orange
-      { matchId: 8, teamColor: 'gray', playerIdx: 3, type: 'NORMAL' as const },
-      // Match 9: Green 2-1 Gray
-      { matchId: 9, teamColor: 'green', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 9, teamColor: 'green', playerIdx: 1, type: 'OWN_GOAL' as const },
-      { matchId: 9, teamColor: 'gray', playerIdx: 4, type: 'OWN_GOAL' as const },
-      // Match 10: Blue 2-3 Orange
-      { matchId: 10, teamColor: 'blue', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 10, teamColor: 'blue', playerIdx: 1, type: 'NORMAL' as const },
-      { matchId: 10, teamColor: 'orange', playerIdx: 1, type: 'NORMAL' as const },
-      { matchId: 10, teamColor: 'orange', playerIdx: 2, type: 'NORMAL' as const },
-      { matchId: 10, teamColor: 'orange', playerIdx: 3, type: 'NORMAL' as const },
-      // Match 11: Orange 1-1 Green
-      { matchId: 11, teamColor: 'orange', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 11, teamColor: 'green', playerIdx: 2, type: 'NORMAL' as const },
-      // Match 12: Gray 2-0 Blue
-      { matchId: 12, teamColor: 'gray', playerIdx: 0, type: 'NORMAL' as const },
-      { matchId: 12, teamColor: 'gray', playerIdx: 1, type: 'NORMAL' as const },
-    ];
-    
-    let goalId = 1;
-    for (const goalTemplate of mockGoalsTemplate) {
-      const teamColor = goalTemplate.teamColor as 'green' | 'orange' | 'gray' | 'blue';
-      const playerId = playersByTeam[teamColor][goalTemplate.playerIdx];
-      
-      if (playerId) {
-        const goalData: any = {
-          goalId: -(goalId++), // Temporary negative IDs for unsaved goals
-          matchId: goalTemplate.matchId, // Use matchId directly (matches match.matchId)
-          teamId: teamIdMap[teamColor], // Convert color to teamId (1=green, 2=orange, 3=gray, 4=blue)
-          playerId,
-          goalType: goalTemplate.type,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        editionsStore.goals.push(goalData);
-      }
-    }
-    
-    // Also populate editionsStore.players for goal display
-    editionsStore.players = databasePlayers.slice(0, 24);
-    
-    // Set current edition
-    editionsStore.currentEdition = mockEdition;
-  } catch (error) {
-    console.error('Failed to load mock data:', error);
-    alert('Failed to load mock data: ' + (error instanceof Error ? error.message : 'Unknown error'));
-  }
 };
 
 const selectEdition = async (edition: Edition) => {
@@ -606,20 +439,20 @@ const initializeEdition = async () => {
 
     // Step 4: Create all matches locally
     const MATCH_ORDER = [
-      { homeColor: 'green', awayColor: 'orange', number: 1, type: 'REGULAR' },
-      { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'REGULAR' },
-      { homeColor: 'orange', awayColor: 'blue', number: 3, type: 'REGULAR' },
-      { homeColor: 'gray', awayColor: 'green', number: 4, type: 'REGULAR' },
-      { homeColor: 'green', awayColor: 'blue', number: 5, type: 'REGULAR' },
-      { homeColor: 'orange', awayColor: 'gray', number: 6, type: 'REGULAR' },
-      { homeColor: 'blue', awayColor: 'green', number: 7, type: 'REGULAR' },
-      { homeColor: 'gray', awayColor: 'orange', number: 8, type: 'REGULAR' },
-      { homeColor: 'green', awayColor: 'gray', number: 9, type: 'REGULAR' },
-      { homeColor: 'blue', awayColor: 'orange', number: 10, type: 'REGULAR' },
-      { homeColor: 'orange', awayColor: 'green', number: 11, type: 'REGULAR' },
-      { homeColor: 'gray', awayColor: 'blue', number: 12, type: 'REGULAR' },
-      { homeColor: '', awayColor: '', number: 13, type: 'SEMI_FINAL' },
-      { homeColor: '', awayColor: '', number: 14, type: 'FINAL' },
+      { homeColor: 'green', awayColor: 'orange', number: 1, type: 'group' },
+      { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'group' },
+      { homeColor: 'orange', awayColor: 'blue', number: 3, type: 'group' },
+      { homeColor: 'gray', awayColor: 'green', number: 4, type: 'group' },
+      { homeColor: 'green', awayColor: 'blue', number: 5, type: 'group' },
+      { homeColor: 'orange', awayColor: 'gray', number: 6, type: 'group' },
+      { homeColor: 'blue', awayColor: 'green', number: 7, type: 'group' },
+      { homeColor: 'gray', awayColor: 'orange', number: 8, type: 'group' },
+      { homeColor: 'green', awayColor: 'gray', number: 9, type: 'group' },
+      { homeColor: 'blue', awayColor: 'orange', number: 10, type: 'group' },
+      { homeColor: 'orange', awayColor: 'green', number: 11, type: 'group' },
+      { homeColor: 'gray', awayColor: 'blue', number: 12, type: 'group' },
+      { homeColor: '', awayColor: '', number: 13, type: 'small_final' },
+      { homeColor: '', awayColor: '', number: 14, type: 'big_final' },
     ];
 
     let matchIdCounter = 1;
@@ -627,10 +460,11 @@ const initializeEdition = async () => {
       let homeTeamId: number | null = null;
       let awayTeamId: number | null = null;
 
-      if (matchTemplate.type === 'REGULAR') {
+      if (matchTemplate.type === 'group') {
         homeTeamId = teamIds[matchTemplate.homeColor];
         awayTeamId = teamIds[matchTemplate.awayColor];
       } else {
+        // Finals: temporarily assign placeholder teams, will be updated based on standings
         homeTeamId = teamIds['green'];
         awayTeamId = teamIds['orange'];
       }
@@ -710,9 +544,11 @@ const saveEdition = async () => {
     for (const match of editionsStore.matches) {
       const matchData = {
         editionId: createdEdition.editionId!,
-        homeTeamId: teamIdMap[match.homeTeamId],
-        awayTeamId: teamIdMap[match.awayTeamId],
-        matchNumber: match.matchNumber,
+        team1Id: teamIdMap[match.homeTeamId],
+        team2Id: teamIdMap[match.awayTeamId],
+        stage: match.matchNumber,
+        team1Score: match.homeTeamScore || 0,
+        team2Score: match.awayTeamScore || 0,
         matchType: match.matchType,
       };
       const matchResponse = await matchService.create(matchData);
@@ -788,8 +624,8 @@ const awayTeamName = (match: any): string => {
 };
 
 const matchTypeLabel = (match: any): string => {
-  if (match.matchType === 'SEMI_FINAL') return 'Small Final';
-  if (match.matchType === 'FINAL') return 'Big Final';
+  if (match.matchType === 'small_final') return 'Small Final';
+  if (match.matchType === 'big_final') return 'Big Final';
   return `Match ${match.matchNumber}`;
 };
 
