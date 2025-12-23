@@ -30,6 +30,19 @@ export const playerService = {
     api.get<Player>('/players/name', {
       params: { firstName, lastName }
     }),
+  getEditionHistory: (playerId: number, limit: number = 5) =>
+    api.get<Array<{
+      editionId: number;
+      editionNumber: number;
+      date: string;
+      placement: number;
+      finalType: 'big_final' | 'small_final' | null;
+      opponentColor: string;
+      playerTeamScore: number;
+      opponentScore: number;
+    }>>(`/players/${playerId}/history`, {
+      params: { limit }
+    }),
 };
 
 export const authService = {
@@ -152,6 +165,7 @@ export const goalService = {
   getByTeam: (teamId: number) => api.get<Goal[]>(`/goals/team/${teamId}`),
   getByPlayer: (playerId: number) => api.get<Goal[]>(`/goals/player/${playerId}`),
   getByType: (goalType: string) => api.get<Goal[]>(`/goals/type/${goalType}`),
+  getPlayerGoalCount: (playerId: number) => api.get<{ playerId: number; firstName: string; lastName: string; goalCount: number }>(`/goals/player/${playerId}/count`),
 };
 
 export default api;

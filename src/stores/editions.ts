@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Edition, Team, Match, Goal, Player } from '../types';
 import { editionService, matchService, goalService } from '../services/api';
 
@@ -25,6 +25,7 @@ export const useEditionsStore = defineStore('editions', () => {
 
   // Local storage persistence key
   const STORAGE_KEY = 'galero_editions_state';
+  let autoSaveSetup = false;
 
   const MATCH_ORDER = [
     { homeColor: 'green', awayColor: 'orange', number: 1, type: 'group' as const },
@@ -42,6 +43,75 @@ export const useEditionsStore = defineStore('editions', () => {
     { homeColor: 'placeholder', awayColor: 'placeholder', number: 13, type: 'small_final' as const }, // Small final - determined by standings
     { homeColor: 'placeholder', awayColor: 'placeholder', number: 14, type: 'big_final' as const }, // Big final - determined by standings
   ];
+
+  // Helper function to calculate head-to-head stats between two teams
+  const getHeadToHeadStats = (teamA: number, teamB: number, currentMatches: MatchData[]) => {
+    const h2hMatches = currentMatches.filter(
+      m => (m.homeTeamId === teamA || m.awayTeamId === teamA) &&
+           (m.homeTeamId === teamB || m.awayTeamId === teamB) &&
+           m.matchType === 'group' &&
+           m.isPlayed === true
+    );
+
+    let points = 0;
+    let goalsFor = 0;
+    let goalsAgainst = 0;
+
+    h2hMatches.forEach(match => {
+      const isHome = match.homeTeamId === teamA;
+      const teamScore = isHome ? (match.homeTeamScore || 0) : (match.awayTeamScore || 0);
+      const opponentScore = isHome ? (match.awayTeamScore || 0) : (match.homeTeamScore || 0);
+
+      goalsFor += teamScore;
+      goalsAgainst += opponentScore;
+
+      if (teamScore > opponentScore) {
+        points += 3;
+      } else if (teamScore === opponentScore) {
+        points += 1;
+      }
+    });
+
+    return { points, goalsFor, goalsAgainst, goalDifference: goalsFor - goalsAgainst };
+  };
+
+  // Helper function to compare teams with full tiebreaker rules
+  const compareTeamsWithTiebreakers = (
+    standingsA: any,
+    standingsB: any,
+    currentMatches: MatchData[]
+  ): number => {
+    // Rule 1: Compare points
+    if (standingsB.points !== standingsA.points) {
+      return standingsB.points - standingsA.points;
+    }
+
+    // Rule 2: Direct matches (head-to-head)
+    const h2hA = getHeadToHeadStats(standingsA.teamId, standingsB.teamId, currentMatches);
+    const h2hB = getHeadToHeadStats(standingsB.teamId, standingsA.teamId, currentMatches);
+
+    if (h2hA.points !== h2hB.points) {
+      return h2hB.points - h2hA.points;
+    }
+
+    // If head-to-head points are also equal, check head-to-head goal difference
+    if (h2hA.goalDifference !== h2hB.goalDifference) {
+      return h2hB.goalDifference - h2hA.goalDifference;
+    }
+
+    // Rule 3: Goal difference (overall)
+    if (standingsB.goalDifference !== standingsA.goalDifference) {
+      return standingsB.goalDifference - standingsA.goalDifference;
+    }
+
+    // Rule 4: Goals scored (overall)
+    if (standingsB.goalsFor !== standingsA.goalsFor) {
+      return standingsB.goalsFor - standingsA.goalsFor;
+    }
+
+    // If still tied, maintain original order (stable sort)
+    return 0;
+  };
 
   // Computed standings - Only based on REGULAR matches for determining final placements
   const standings = computed(() => {
@@ -83,16 +153,12 @@ export const useEditionsStore = defineStore('editions', () => {
       };
     });
 
-    // Sort by points (descending), then by goal difference (descending)
-    return teamStandings.sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      return b.goalDifference - a.goalDifference;
-    });
+    // Sort with comprehensive tiebreaker rules
+    return teamStandings.sort((a, b) => compareTeamsWithTiebreakers(a, b, matches.value));
   });
 
   // Calculate standings inline (used by updateFinalMatchTeams to avoid circular dependency)
   const calculateStandings = (currentMatches: MatchData[]) => {
-    console.log("Standings triggered");
     const teamStandings = teams.value.map(team => {
       const teamMatches = currentMatches.filter(
         m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
@@ -130,10 +196,7 @@ export const useEditionsStore = defineStore('editions', () => {
       };
     });
 
-    return teamStandings.sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      return b.goalDifference - a.goalDifference;
-    });
+    return teamStandings.sort((a, b) => compareTeamsWithTiebreakers(a, b, currentMatches));
   };
 
   // Update final match teams based on current standings
@@ -318,6 +381,57 @@ export const useEditionsStore = defineStore('editions', () => {
     }
   };
 
+  // Add watchers to auto-save state on changes
+  const setupAutoSave = () => {
+    // Only set up watchers once
+    if (autoSaveSetup) return;
+    autoSaveSetup = true;
+
+    // Watch teams for changes
+    watch(
+      teams,
+      () => {
+        if (isCreatingNewEdition.value) {
+          saveState();
+        }
+      },
+      { deep: true }
+    );
+
+    // Watch matches for changes
+    watch(
+      matches,
+      () => {
+        if (isCreatingNewEdition.value) {
+          saveState();
+        }
+      },
+      { deep: true }
+    );
+
+    // Watch goals for changes
+    watch(
+      goals,
+      () => {
+        if (isCreatingNewEdition.value) {
+          saveState();
+        }
+      },
+      { deep: true }
+    );
+
+    // Watch current edition for changes
+    watch(
+      currentEdition,
+      () => {
+        if (isCreatingNewEdition.value) {
+          saveState();
+        }
+      },
+      { deep: true }
+    );
+  };
+
   // Add goal to match
   const addGoal = async (matchId: number, playerId: number, teamId: number, goalType: 'normal' | 'penalty' | 'own_goal' = 'normal') => {
     try {
@@ -483,6 +597,7 @@ export const useEditionsStore = defineStore('editions', () => {
     players.value = [];
     error.value = null;
     isCreatingNewEdition.value = false;
+    autoSaveSetup = false;
   };
 
   // Set creating new edition mode
@@ -511,6 +626,7 @@ export const useEditionsStore = defineStore('editions', () => {
     loadState,
     resetStore,
     setCreatingNewEdition,
+    setupAutoSave,
     $reset: resetStore,
   };
 });

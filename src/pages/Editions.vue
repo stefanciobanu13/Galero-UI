@@ -264,6 +264,33 @@
         </v-col>
       </v-row>
 
+      <!-- Top Scorers Section -->
+      <v-row class="mb-6" v-if="topScorers.length > 0">
+        <v-col cols="12">
+          <v-card>
+            <v-card-title>Top Scorers</v-card-title>
+            <v-card-text>
+              <v-table>
+                <thead>
+                  <tr>
+                    <th class="text-left">Rank</th>
+                    <th class="text-left">Player</th>
+                    <th class="text-center">Goals</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(scorer, index) in topScorers" :key="scorer.playerId">
+                    <td class="font-weight-bold">{{ index + 1 }}</td>
+                    <td>{{ scorer.playerName }}</td>
+                    <td class="text-center font-weight-bold">{{ scorer.goalCount }}</td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
       <!-- Save Button at the Bottom (only for new editions) -->
       <v-row v-if="isCreatingNew" class="mb-4 sticky-save-button">
         <v-col cols="12">
@@ -342,6 +369,42 @@ const finalMatches = computed(() =>
   editionsStore.matches.filter(m => m.matchType !== 'group')
 );
 
+const topScorers = computed(() => {
+  // Group goals by player and count them
+  const scorerMap: Record<number, { playerId: number; playerName: string; goalCount: number; goalCountInFinals: number }> = {};
+
+  editionsStore.goals.forEach(goal => {
+    if (!scorerMap[goal.playerId]) {
+      // Find player name from editionsStore.players
+      const player = editionsStore.players.find(p => p.playerId === goal.playerId);
+      scorerMap[goal.playerId] = {
+        playerId: goal.playerId,
+        playerName: player ? `${player.firstName} ${player.lastName}` : 'Unknown',
+        goalCount: 0,
+        goalCountInFinals: 0,
+      };
+    }
+    scorerMap[goal.playerId].goalCount++;
+
+    // Check if this goal was scored in a final match
+    const match = editionsStore.matches.find(m => m.matchId === goal.matchId);
+    if (match && (match.matchType === 'small_final' || match.matchType === 'big_final')) {
+      scorerMap[goal.playerId].goalCountInFinals++;
+    }
+  });
+
+  // Convert to array, sort by goal count (descending), then by goals in finals (descending), and return top 10
+  return Object.values(scorerMap)
+    .sort((a, b) => {
+      if (b.goalCount !== a.goalCount) {
+        return b.goalCount - a.goalCount;
+      }
+      // Tiebreaker: goals in finals
+      return b.goalCountInFinals - a.goalCountInFinals;
+    })
+    .slice(0, 10);
+});
+
 const colorMap: Record<string, string> = {
   green: '#4CAF50',
   orange: '#FF9800',
@@ -370,6 +433,21 @@ const loadExistingEditions = async () => {
 
 const startCreatingNew = () => {
   isCreatingNew.value = true;
+  editionsStore.setCreatingNewEdition(true);
+  
+  // Try to load saved state first
+  editionsStore.loadState();
+  
+  // If there's saved state, ask user if they want to resume
+  if (editionsStore.currentEdition && editionsStore.teams.length > 0) {
+    if (confirm('You have unsaved edition data. Would you like to resume editing it?')) {
+      // Resume editing - set up auto-save
+      editionsStore.setupAutoSave();
+      return;
+    }
+  }
+  
+  // Otherwise, reset and start new edition
   editionsStore.resetStore();
   editionsStore.setCreatingNewEdition(true);
   editionForm.value = {
@@ -492,6 +570,9 @@ const initializeEdition = async () => {
       editionNumber: editionForm.value.editionNumber,
       date: editionForm.value.date,
     };
+
+    // Set up auto-save for this edition
+    editionsStore.setupAutoSave();
   } catch (e: any) {
     console.error('Failed to initialize edition:', e);
     alert('Error initializing edition: ' + (e.message || 'Unknown error'));
@@ -566,6 +647,13 @@ const saveEdition = async () => {
       await goalService.create(goalData);
     }
 
+    // Clear saved state after successful save
+    try {
+      localStorage.removeItem('galero_editions_state');
+    } catch (e) {
+      console.warn('Failed to clear saved state:', e);
+    }
+
     alert('Edition saved successfully!');
     goBack();
   } catch (e: any) {
@@ -575,6 +663,13 @@ const saveEdition = async () => {
 };
 
 const goBack = () => {
+  // Clear saved state when going back successfully
+  try {
+    localStorage.removeItem('galero_editions_state');
+  } catch (e) {
+    console.warn('Failed to clear saved state:', e);
+  }
+  
   editionsStore.resetStore();
   editionsStore.setCreatingNewEdition(false);
   selectedEditionForView.value = null;

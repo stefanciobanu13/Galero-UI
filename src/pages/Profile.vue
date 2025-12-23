@@ -24,6 +24,9 @@
             <div class="mb-6">
               <p class="text-overline text-grey">Full Name</p>
               <p class="text-body1">{{ authStore.user?.name }}</p>
+              <p v-if="authStore.user?.playerId" class="text-body2 text-grey mt-2">
+                Assigned Player: <span class="font-weight-bold text-primary">{{ assignedPlayerName }}</span> (ID: {{ authStore.user.playerId }})
+              </p>
             </div>
 
             <v-divider class="my-6" />
@@ -41,20 +44,24 @@
 
             <v-divider class="my-6" />
 
-            <!-- Assigned Player Section -->
+            <!-- Statistics Section -->
             <div class="mb-6">
-              <p class="text-overline text-grey mb-3">Assigned Player</p>
+              <p class="text-overline text-grey mb-3">Statistics</p>
               <v-card v-if="authStore.user?.playerId" variant="outlined" class="pa-4 mb-3">
                 <div class="d-flex align-center justify-space-between">
-                  <div>
-                    <p class="font-weight-bold mb-1">
-                      {{ assignedPlayerName }}
-                    </p>
-                    <p class="text-body2 text-grey mb-0">
-                      Player ID: {{ authStore.user.playerId }}
-                    </p>
+                  <div style="flex: 1;">
+                    <div v-if="!isLoadingGoals" class="d-flex align-center gap-2">
+                      <v-icon color="primary" size="small">mdi-soccer</v-icon>
+                      <p class="text-body2 font-weight-bold mb-0">
+                        Goals: <span class="text-primary">{{ playerGoalCount }}</span>
+                      </p>
+                    </div>
+                    <v-progress-circular
+                      v-else
+                      indeterminate
+                      size="20"
+                    />
                   </div>
-                  <v-icon color="primary">mdi-check-circle</v-icon>
                 </div>
               </v-card>
               <div v-else class="d-flex align-center gap-2 mb-3">
@@ -90,6 +97,35 @@
                 >
                   Unlink
                 </v-btn>
+              </div>
+            </div>
+
+            <v-divider class="my-6" />
+
+            <!-- Edition History Section -->
+            <div class="mb-6" v-if="authStore.user?.playerId">
+              <p class="text-overline text-grey mb-3">Edition History (Last 5)</p>
+              <v-progress-circular
+                v-if="isLoadingHistory"
+                indeterminate
+                color="primary"
+                size="24"
+              />
+              <div v-else-if="editionHistory.length > 0" class="d-flex gap-1">
+                <div
+                  v-for="edition in editionHistory"
+                  :key="edition.editionId"
+                  class="d-flex flex-column align-center"
+                  style="font-size: 28px; cursor: pointer;"
+                  :title="`Edition ${edition.editionNumber} - ${formatDate(edition.date)}`"
+                >
+                  <span>{{ getPlacementEmoji(edition.placement) }}</span>
+                  <span style="font-size: 12px; color: #666; margin-top: 2px;">{{ edition.placement }}{{ edition.placement === 1 ? 'st' : edition.placement === 2 ? 'nd' : edition.placement === 3 ? 'rd' : 'th' }}</span>
+                </div>
+              </div>
+              <div v-else class="d-flex align-center gap-2">
+                <v-icon color="info" size="small">mdi-information</v-icon>
+                <span class="text-body2 text-grey">No edition history yet</span>
               </div>
             </div>
 
@@ -156,10 +192,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { playerService } from '../services/api';
+import { playerService, goalService } from '../services/api';
 import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
 
 const router = useRouter();
@@ -169,6 +205,19 @@ const isChangingPlayer = ref(false);
 const isUnassigningPlayer = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const playerGoalCount = ref<number>(0);
+const isLoadingGoals = ref(false);
+const editionHistory = ref<Array<{
+  editionId: number;
+  editionNumber: number;
+  date: string;
+  placement: number;
+  finalType: 'big_final' | 'small_final' | null;
+  opponentColor: string;
+  playerTeamScore: number;
+  opponentScore: number;
+}>>([]);
+const isLoadingHistory = ref(false);
 
 const assignedPlayerName = computed(() => {
   if (authStore.user?.firstName && authStore.user?.lastName) {
@@ -193,6 +242,63 @@ const memberSinceDate = computed(() => {
     month: 'long', 
     day: 'numeric' 
   });
+});
+
+const loadPlayerGoals = async () => {
+  if (!authStore.user?.playerId) return;
+  
+  isLoadingGoals.value = true;
+  try {
+    const response = await goalService.getPlayerGoalCount(authStore.user.playerId);
+    playerGoalCount.value = response.data.goalCount;
+  } catch (error) {
+    console.error('Failed to load player goals:', error);
+  } finally {
+    isLoadingGoals.value = false;
+  }
+};
+
+const loadEditionHistory = async () => {
+  if (!authStore.user?.playerId) return;
+  
+  isLoadingHistory.value = true;
+  try {
+    const response = await playerService.getEditionHistory(authStore.user.playerId, 5);
+    editionHistory.value = response.data;
+  } catch (error) {
+    console.error('Failed to load edition history:', error);
+  } finally {
+    isLoadingHistory.value = false;
+  }
+};
+
+const getPlacementColor = (placement: number) => {
+  switch (placement) {
+    case 1: return '#FFD700'; // Gold
+    case 2: return '#C0C0C0'; // Silver
+    case 3: return '#CD7F32'; // Bronze
+    default: return '#9E9E9E'; // Gray
+  }
+};
+
+const getPlacementEmoji = (placement: number) => {
+  switch (placement) {
+    case 1: return '🥇';
+    case 2: return '🥈';
+    case 3: return '🥉';
+    default: return `#${placement}`;
+  }
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// Watch for changes in assigned player and reload goals and history
+watch(() => authStore.user?.playerId, () => {
+  loadPlayerGoals();
+  loadEditionHistory();
 });
 
 const handlePlayerSelected = async () => {
@@ -234,6 +340,11 @@ const logout = () => {
   authStore.logout();
   router.push('/login');
 };
+
+onMounted(() => {
+  loadPlayerGoals();
+  loadEditionHistory();
+});
 </script>
 
 <style scoped>
