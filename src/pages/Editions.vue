@@ -441,7 +441,9 @@ const startCreatingNew = () => {
   // If there's saved state, ask user if they want to resume
   if (editionsStore.currentEdition && editionsStore.teams.length > 0) {
     if (confirm('You have unsaved edition data. Would you like to resume editing it?')) {
-      // Resume editing - set up auto-save
+      // Resume editing - restore the edition form data from currentEdition
+      editionForm.value.editionNumber = editionsStore.currentEdition.editionNumber || 1;
+      editionForm.value.date = editionsStore.currentEdition.date || '';
       editionsStore.setupAutoSave();
       return;
     }
@@ -589,6 +591,13 @@ const saveEdition = async () => {
   try {
     if (!editionsStore.currentEdition) {
       alert('Please initialize an edition first');
+      return;
+    }
+
+    // Validate that all matches have been played
+    const unplayedMatches = editionsStore.matches.filter(m => !m.isPlayed);
+    if (unplayedMatches.length > 0) {
+      alert(`Cannot save edition. There are ${unplayedMatches.length} unplayed match(es). All matches must be played before saving.`);
       return;
     }
 

@@ -7,6 +7,7 @@ import Login from '../pages/Login.vue';
 import AddPlayer from '../pages/AddPlayer.vue';
 import Attendance from '../pages/Attendance.vue';
 import Editions from '../pages/Editions.vue';
+import Champions from '../pages/Champions.vue';
 
 const routes = [
   {
@@ -41,6 +42,12 @@ const routes = [
     path: '/editions',
     name: 'Editions',
     component: Editions,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/champions',
+    name: 'Champions',
+    component: Champions,
     meta: { requiresAuth: true },
   },
   {

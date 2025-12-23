@@ -85,6 +85,15 @@
             @click="showMenu = false"
           />
 
+          <!-- Champions Item -->
+          <v-list-item
+            v-if="authStore.isLoggedIn"
+            title="Champions"
+            to="/champions"
+            prepend-icon="mdi-star"
+            @click="showMenu = false"
+          />
+
           <!-- Profile Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
