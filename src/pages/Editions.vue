@@ -3,7 +3,7 @@
     <!-- Header -->
     <v-row class="mb-4">
       <v-col>
-        <h1>Editions</h1>
+        <h1>{{ t('pages.editions.title') }}</h1>
       </v-col>
     </v-row>
 
@@ -13,7 +13,7 @@
         <v-card class="pa-6">
           <v-row class="mb-4">
             <v-col cols="12" md="6">
-              <h2>Available Editions</h2>
+              <h2>{{ t('pages.editions.title') }}</h2>
             </v-col>
             <v-col cols="12" md="6">
               <v-row class="gap-2">
@@ -24,7 +24,7 @@
                     block
                     prepend-icon="mdi-plus"
                   >
-                    Add New Edition
+                    {{ t('pages.editions.newEdition') }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -342,12 +342,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useEditionsStore } from '../stores/editions';
 import { editionService, teamService, matchService, teamPlayerService, playerService, goalService } from '../services/api';
 import MatchCard from '../components/MatchCard.vue';
 import type { Edition } from '../types';
 
 const editionsStore = useEditionsStore();
+const { t } = useI18n();
 const isInitializing = ref(false);
 const isCreatingNew = ref(false);
 const selectedEditionForView = ref<Edition | null>(null);

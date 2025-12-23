@@ -4,7 +4,7 @@
       <v-col cols="12" sm="8" md="6">
         <v-card elevation="2">
           <v-card-title class="text-h5 mb-4">
-            Profile
+            {{ t('pages.profile.title') }}
           </v-card-title>
 
           <v-card-text>
@@ -17,28 +17,28 @@
             </div>
 
             <div class="mb-6">
-              <p class="text-overline text-grey">Email</p>
+              <p class="text-overline text-grey">{{ t('pages.profile.email') }}</p>
               <p class="text-body1">{{ authStore.user?.email }}</p>
             </div>
 
             <div class="mb-6">
-              <p class="text-overline text-grey">Full Name</p>
+              <p class="text-overline text-grey">{{ t('pages.profile.name') }}</p>
               <p class="text-body1">{{ authStore.user?.name }}</p>
               <p v-if="authStore.user?.playerId" class="text-body2 text-grey mt-2">
-                Assigned Player: <span class="font-weight-bold text-primary">{{ assignedPlayerName }}</span> (ID: {{ authStore.user.playerId }})
+                {{ t('pages.profile.assignedPlayer') }}: <span class="font-weight-bold text-primary">{{ assignedPlayerName }}</span> (ID: {{ authStore.user.playerId }})
               </p>
             </div>
 
             <v-divider class="my-6" />
 
             <div class="mb-6">
-              <p class="text-overline text-grey">Account Status</p>
+              <p class="text-overline text-grey">{{ t('pages.profile.accountStatus') }}</p>
               <v-chip
                 :color="authStore.isAdmin ? 'warning' : 'info'"
                 text-color="white"
                 class="mb-2"
               >
-                {{ authStore.isAdmin ? 'Admin' : 'User' }}
+                {{ authStore.isAdmin ? t('pages.profile.admin') : t('pages.profile.user') }}
               </v-chip>
             </div>
 
@@ -46,14 +46,14 @@
 
             <!-- Statistics Section -->
             <div class="mb-6">
-              <p class="text-overline text-grey mb-3">Statistics</p>
+              <p class="text-overline text-grey mb-3">{{ t('pages.profile.statistics') }}</p>
               <v-card v-if="authStore.user?.playerId" variant="outlined" class="pa-4 mb-3">
                 <div class="d-flex align-center justify-space-between">
                   <div style="flex: 1;">
                     <div v-if="!isLoadingGoals" class="d-flex align-center gap-2">
                       <v-icon color="primary" size="small">mdi-soccer</v-icon>
                       <p class="text-body2 font-weight-bold mb-0">
-                        Goals: <span class="text-primary">{{ playerGoalCount }}</span>
+                        {{ t('pages.profile.goals') }}: <span class="text-primary">{{ playerGoalCount }}</span>
                       </p>
                     </div>
                     <v-progress-circular
@@ -66,7 +66,7 @@
               </v-card>
               <div v-else class="d-flex align-center gap-2 mb-3">
                 <v-icon color="warning">mdi-alert-circle</v-icon>
-                <span class="text-body2 text-grey">No player assigned yet</span>
+                <span class="text-body2 text-grey">{{ t('pages.profile.noPlayerAssigned') }}</span>
               </div>
               <div class="d-flex gap-2">
                 <v-btn
@@ -77,7 +77,7 @@
                   @click="showChangePlayerModal = true"
                   :loading="isChangingPlayer"
                 >
-                  Change Player
+                  {{ t('pages.profile.changePlayer') }}
                 </v-btn>
                 <v-btn
                   v-else
@@ -85,7 +85,7 @@
                   color="primary"
                   @click="showChangePlayerModal = true"
                 >
-                  Assign Player
+                  {{ t('pages.profile.assignPlayer') }}
                 </v-btn>
                 <v-btn
                   v-if="authStore.user?.playerId"
@@ -95,7 +95,7 @@
                   @click="handleUnassignPlayer"
                   :loading="isUnassigningPlayer"
                 >
-                  Unlink
+                  {{ t('pages.profile.unlink') }}
                 </v-btn>
               </div>
             </div>
@@ -104,7 +104,7 @@
 
             <!-- Edition History Section -->
             <div class="mb-6" v-if="authStore.user?.playerId">
-              <p class="text-overline text-grey mb-3">Edition History (Last 5)</p>
+              <p class="text-overline text-grey mb-3">{{ t('pages.profile.editionHistory') }} (Last 5)</p>
               <v-progress-circular
                 v-if="isLoadingHistory"
                 indeterminate
@@ -125,7 +125,7 @@
               </div>
               <div v-else class="d-flex align-center gap-2">
                 <v-icon color="info" size="small">mdi-information</v-icon>
-                <span class="text-body2 text-grey">No edition history yet</span>
+                <span class="text-body2 text-grey">{{ t('pages.profile.noHistory') }}</span>
               </div>
             </div>
 
@@ -145,7 +145,7 @@
               class="mt-6"
               prepend-icon="mdi-soccer"
             >
-              View Players
+              {{ t('nav.players') }}
             </v-btn>
 
             <v-btn
@@ -157,7 +157,7 @@
               class="mt-4"
               prepend-icon="mdi-logout"
             >
-              Logout
+              {{ t('common.logout') }}
             </v-btn>
 
             <v-alert
@@ -194,11 +194,12 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { playerService, goalService } from '../services/api';
 import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
 
-const router = useRouter();
+const { t } = useI18n();const router = useRouter();
 const authStore = useAuthStore();
 const showChangePlayerModal = ref(false);
 const isChangingPlayer = ref(false);

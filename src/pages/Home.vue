@@ -4,14 +4,14 @@
       <v-col cols="12">
         <v-card elevation="2" class="mb-6">
           <v-card-title class="text-h4 mb-4">
-            Welcome to Football Competition Management
+            {{ t('pages.home.welcome') }}
           </v-card-title>
           <v-card-text>
             <p class="text-body1 mb-4">
-              Manage your football competition with ease. Track players, organize teams, and manage matches all in one place.
+              {{ t('pages.home.description') }}
             </p>
             <p class="text-body2 text-grey">
-              Get started by exploring the Players section or logging in with your Google account.
+              {{ t('pages.home.getStarted') }}
             </p>
           </v-card-text>
         </v-card>
@@ -25,8 +25,8 @@
             <v-icon size="40" color="primary" class="mb-2">mdi-soccer</v-icon>
           </v-card-title>
           <v-card-text class="text-center">
-            <p class="text-h6">Players Management</p>
-            <p class="text-body2 text-grey">View and manage all players in the competition.</p>
+            <p class="text-h6">{{ t('pages.home.playersManagement') }}</p>
+            <p class="text-body2 text-grey">{{ t('pages.home.playersManagementDesc') }}</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -37,8 +37,8 @@
             <v-icon size="40" color="primary" class="mb-2">mdi-account</v-icon>
           </v-card-title>
           <v-card-text class="text-center">
-            <p class="text-h6">Profile Management</p>
-            <p class="text-body2 text-grey">View and update your profile information.</p>
+            <p class="text-h6">{{ t('pages.home.profileManagement') }}</p>
+            <p class="text-body2 text-grey">{{ t('pages.home.profileManagementDesc') }}</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -49,8 +49,8 @@
             <v-icon size="40" color="primary" class="mb-2">mdi-shield-admin</v-icon>
           </v-card-title>
           <v-card-text class="text-center">
-            <p class="text-h6">Admin Controls</p>
-            <p class="text-body2 text-grey">Admin-only features for competition management.</p>
+            <p class="text-h6">{{ t('pages.home.adminControls') }}</p>
+            <p class="text-body2 text-grey">{{ t('pages.home.adminControlsDesc') }}</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -64,7 +64,7 @@
           color="primary"
           prepend-icon="mdi-login"
         >
-          Login with Google
+          {{ t('pages.home.loginWithGoogle') }}
         </v-btn>
       </v-col>
     </v-row>
@@ -72,7 +72,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 
+const { t } = useI18n();
 const authStore = useAuthStore();
 </script>

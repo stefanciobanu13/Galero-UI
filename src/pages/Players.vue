@@ -4,14 +4,14 @@
       <v-col cols="12">
         <v-card elevation="2">
           <v-card-title class="text-h5">
-            Players
+            {{ t('pages.players.title') }}
           </v-card-title>
           <v-card-text>
             <v-row>
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="searchFirstName"
-                  label="Search by First Name"
+                  :label="t('pages.addPlayer.firstName')"
                   prepend-icon="mdi-magnify"
                   clearable
                 />
@@ -19,7 +19,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="searchLastName"
-                  label="Search by Last Name"
+                  :label="t('pages.addPlayer.lastName')"
                   prepend-icon="mdi-magnify"
                   clearable
                 />
@@ -32,7 +32,7 @@
                   @click="handleSearch"
                   :loading="playerStore.loading"
                 >
-                  Search
+                  {{ t('pages.players.search') }}
                 </v-btn>
                 <v-btn
                   color="success"
@@ -40,7 +40,7 @@
                   prepend-icon="mdi-plus"
                   @click="addPlayer"
                 >
-                  Add Player
+                  {{ t('pages.players.addNew') }}
                 </v-btn>
                 <v-btn
                   color="primary"
@@ -102,8 +102,8 @@
           <template #no-data>
             <div class="text-center pa-8">
               <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-soccer</v-icon>
-              <p class="text-h6 text-grey">No players found</p>
-              <p class="text-body2 text-grey">Start by adding some players to the competition</p>
+              <p class="text-h6 text-grey">{{ t('pages.players.noPlayers') }}</p>
+              <p class="text-body2 text-grey">{{ t('pages.addPlayer.title') }}</p>
             </div>
           </template>
         </v-data-table-virtual>
@@ -199,10 +199,12 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { usePlayerStore } from '../stores/player';
 import { useAuthStore } from '../stores/auth';
 import type { Player } from '../types';
 
+const { t } = useI18n();
 const playerStore = usePlayerStore();
 const authStore = useAuthStore();
 const searchFirstName = ref('');

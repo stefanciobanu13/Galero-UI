@@ -2,8 +2,8 @@
   <v-container class="champions-page py-8">
     <v-row class="mb-6">
       <v-col cols="12">
-        <h1 class="text-h4 font-weight-bold mb-2">🏆 Champions</h1>
-        <p class="text-body2 text-grey">Statistics and records from all editions</p>
+        <h1 class="text-h4 font-weight-bold mb-2">🏆 {{ t('pages.champions.title') }}</h1>
+        <p class="text-body2 text-grey">{{ t('pages.champions.topWinners') }} & {{ t('pages.champions.topScorers') }}</p>
       </v-col>
     </v-row>
 
@@ -13,7 +13,7 @@
         <v-card elevation="2">
           <v-card-title class="d-flex align-center gap-2">
             <v-icon color="primary">mdi-trophy</v-icon>
-            <span>Top Winners</span>
+            <span>{{ t('pages.champions.topWinners') }}</span>
           </v-card-title>
           <v-card-text>
             <v-progress-circular
@@ -69,7 +69,7 @@
         <v-card elevation="2">
           <v-card-title class="d-flex align-center gap-2">
             <v-icon color="orange">mdi-soccer</v-icon>
-            <span>All-Time Top Scorers</span>
+            <span>{{ t('pages.champions.topScorers') }}</span>
           </v-card-title>
           <v-card-text>
             <v-progress-circular
@@ -113,7 +113,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { championsService } from '../services/api';
+
+const { t } = useI18n();
 
 const topWinners = ref<Array<{
   playerId: number;

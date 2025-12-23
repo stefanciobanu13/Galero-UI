@@ -23,7 +23,7 @@
           >
             <template #prepend>
               <v-avatar
-                :image="authStore.user?.picture || 'https://cdn.vuetifyjs.com/images/avatars/1.jpg'"
+                :image="authStore.user?.picture || 'https://cdn.vuetifyjs.com/images/avatars/1.jpg'"  
                 color="primary"
               />
             </template>
@@ -34,7 +34,7 @@
           <!-- Login Item -->
           <v-list-item
             v-if="!authStore.isLoggedIn"
-            title="Login"
+            :title="t('common.login')"
             to="/login"
             prepend-icon="mdi-login"
             @click="showMenu = false"
@@ -43,7 +43,7 @@
           <!-- Home Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Home"
+            :title="t('nav.home')"
             to="/"
             prepend-icon="mdi-home"
             @click="showMenu = false"
@@ -52,7 +52,7 @@
           <!-- Players Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Players"
+            :title="t('nav.players')"
             to="/players"
             prepend-icon="mdi-soccer"
             @click="showMenu = false"
@@ -61,7 +61,7 @@
           <!-- Add Player Item (Admin Only) -->
           <v-list-item
             v-if="authStore.isLoggedIn && authStore.isAdmin"
-            title="Add Player"
+            :title="t('nav.addPlayer')"
             to="/add-player"
             prepend-icon="mdi-plus-circle"
             @click="showMenu = false"
@@ -70,7 +70,7 @@
           <!-- Attendance Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Attendance"
+            :title="t('nav.attendance')"
             to="/attendance"
             prepend-icon="mdi-calendar-check"
             @click="showMenu = false"
@@ -79,7 +79,7 @@
           <!-- Editions Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Editions"
+            :title="t('nav.editions')"
             to="/editions"
             prepend-icon="mdi-trophy"
             @click="showMenu = false"
@@ -88,7 +88,7 @@
           <!-- Champions Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Champions"
+            :title="t('nav.champions')"
             to="/champions"
             prepend-icon="mdi-star"
             @click="showMenu = false"
@@ -97,11 +97,27 @@
           <!-- Profile Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Profile"
+            :title="t('nav.profile')"
             to="/profile"
             prepend-icon="mdi-account"
             @click="showMenu = false"
           />
+
+          <!-- Language Selector -->
+          <v-list-item class="mt-2 pt-2" style="border-top: 1px solid rgba(0,0,0,0.12);">
+            <v-select
+              v-model="selectedLanguage"
+              :items="languageOptions"
+              item-title="name"
+              item-value="code"
+              :label="t('common.language')"
+              variant="plain"
+              hide-details
+              density="compact"
+              size="x-small"
+              @update:model-value="changeLanguage"
+            />
+          </v-list-item>
 
           <!-- Divider before Logout -->
           <v-divider v-if="authStore.isLoggedIn" class="my-2" />
@@ -109,7 +125,7 @@
           <!-- Logout Item -->
           <v-list-item
             v-if="authStore.isLoggedIn"
-            title="Logout"
+            :title="t('common.logout')"
             prepend-icon="mdi-logout"
             @click="handleLogout"
           />
@@ -129,11 +145,27 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from './stores/auth';
+import { setLanguage, getCurrentLanguage } from './i18n';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const showMenu = ref(false);
+const { t, locale } = useI18n();
+
+const languageOptions = [
+  { name: 'English', code: 'en' },
+  { name: 'Română', code: 'ro' }
+];
+
+const selectedLanguage = ref(getCurrentLanguage());
+
+const changeLanguage = (languageCode: string) => {
+  setLanguage(languageCode);
+  locale.value = languageCode;
+  selectedLanguage.value = languageCode;
+};
 
 onMounted(() => {
   authStore.restoreFromStorage();

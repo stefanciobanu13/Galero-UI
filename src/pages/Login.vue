@@ -4,12 +4,12 @@
       <v-col cols="12" sm="8" md="6" lg="4">
         <v-card elevation="4" class="pa-8">
           <v-card-title class="text-h4 text-center mb-8">
-            Login
+            {{ t('pages.login.title') }}
           </v-card-title>
 
           <v-card-text>
             <p class="text-center text-body2 mb-6 text-grey">
-              Sign in to manage your football competition
+              {{ t('pages.login.welcome') }}
             </p>
 
             <div class="text-center mb-6">
@@ -41,6 +41,7 @@
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
 
 declare global {
@@ -51,6 +52,7 @@ declare global {
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 const googleButtonContainer = ref<HTMLDivElement | null>(null);
 const showPlayerModal = ref(false);
 const errorMessage = ref('');
