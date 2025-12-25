@@ -138,12 +138,11 @@ export const useAuthStore = defineStore('auth', () => {
   const restoreFromStorage = () => {
     const storedUser = localStorage.getItem('user');
     const storedLoggedIn = localStorage.getItem('isLoggedIn');
-    const storedAdmin = localStorage.getItem('isAdmin');
     
     if (storedUser && storedLoggedIn === 'true') {
       user.value = JSON.parse(storedUser);
       isLoggedIn.value = true;
-      isAdmin.value = storedAdmin === 'true';
+      isAdmin.value = user.value?.isAdmin || false;
       needsPlayerSelection.value = !user.value.playerId;
     }
   };

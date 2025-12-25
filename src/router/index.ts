@@ -4,7 +4,6 @@ import Home from '../pages/Home.vue';
 import Players from '../pages/Players.vue';
 import Profile from '../pages/Profile.vue';
 import Login from '../pages/Login.vue';
-import AddPlayer from '../pages/AddPlayer.vue';
 import Attendance from '../pages/Attendance.vue';
 import Editions from '../pages/Editions.vue';
 import Champions from '../pages/Champions.vue';
@@ -24,12 +23,6 @@ const routes = [
     path: '/players',
     name: 'Players',
     component: Players,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/add-player',
-    name: 'AddPlayer',
-    component: AddPlayer,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
@@ -75,7 +68,7 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !authStore.isLoggedIn) {
     next('/login');
   } else if (requiresAdmin && !authStore.isAdmin) {
-    next('/players');
+    next(false);
   } else {
     next();
   }

@@ -2,9 +2,7 @@
   <v-container class="editions-page">
     <!-- Header -->
     <v-row class="mb-4">
-      <v-col>
-        <h1>{{ t('pages.editions.title') }}</h1>
-      </v-col>
+
     </v-row>
 
     <!-- Browse/Create Section -->
@@ -19,6 +17,7 @@
               <v-row class="gap-2">
                 <v-col cols="12">
                   <v-btn
+                    v-if="authStore.isAdmin"
                     @click="startCreatingNew"
                     color="primary"
                     block
@@ -42,6 +41,7 @@
                   <v-row class="gap-2">
                     <v-col cols="6">
                       <v-btn
+                        v-if="authStore.isAdmin"
                         color="info"
                         size="small"
                         block
@@ -49,9 +49,19 @@
                       >
                         View & Edit
                       </v-btn>
+                      <v-btn
+                        v-else
+                        color="info"
+                        size="small"
+                        block
+                        @click="selectEdition(edition)"
+                      >
+                        View Only
+                      </v-btn>
                     </v-col>
                     <v-col cols="6">
                       <v-btn
+                        v-if="authStore.isAdmin"
                         class="deleteBtn"
                         color="error"
                         rounded
@@ -343,11 +353,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '../stores/auth';
 import { useEditionsStore } from '../stores/editions';
 import { editionService, teamService, matchService, teamPlayerService, playerService, goalService } from '../services/api';
 import MatchCard from '../components/MatchCard.vue';
 import type { Edition } from '../types';
 
+const authStore = useAuthStore();
 const editionsStore = useEditionsStore();
 const { t } = useI18n();
 const isInitializing = ref(false);

@@ -51,19 +51,10 @@
 
           <!-- Players Item -->
           <v-list-item
-            v-if="authStore.isLoggedIn"
+            v-if="authStore.isLoggedIn && authStore.isAdmin"
             :title="t('nav.players')"
             to="/players"
             prepend-icon="mdi-soccer"
-            @click="showMenu = false"
-          />
-
-          <!-- Add Player Item (Admin Only) -->
-          <v-list-item
-            v-if="authStore.isLoggedIn && authStore.isAdmin"
-            :title="t('nav.addPlayer')"
-            to="/add-player"
-            prepend-icon="mdi-plus-circle"
             @click="showMenu = false"
           />
 
@@ -132,7 +123,7 @@
         </v-list>
       </v-menu>
 
-      <v-toolbar-title>Default Test</v-toolbar-title>
+      <v-toolbar-title>Galero</v-toolbar-title>
     </v-app-bar>
 
     <!-- Main Content -->
@@ -162,9 +153,9 @@ const languageOptions = [
 const selectedLanguage = ref(getCurrentLanguage());
 
 const changeLanguage = (languageCode: string) => {
-  setLanguage(languageCode);
+  setLanguage(languageCode as "en" | "ro");
   locale.value = languageCode;
-  selectedLanguage.value = languageCode;
+  selectedLanguage.value = languageCode as "en" | "ro";
 };
 
 onMounted(() => {

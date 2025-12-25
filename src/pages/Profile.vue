@@ -138,6 +138,7 @@
             </div>
 
             <v-btn
+              v-if="authStore.isAdmin"
               to="/players"
               color="primary"
               size="large"
