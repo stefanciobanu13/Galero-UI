@@ -32,7 +32,7 @@
 
             <v-list-item class="mb-4 pl-0">
               <template #prepend>
-                <v-icon size="24" color="primary" class="mr-4">mdi-users</v-icon>
+                <v-icon size="24" color="primary" class="mr-4">mdi-account-group</v-icon>
               </template>
               <v-list-item-content>
                 <p class="text-body1 mb-0">

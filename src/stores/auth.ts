@@ -13,7 +13,8 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = {
       email: googleUser.email,
       name: googleUser.name,
-      picture: googleUser.picture,
+      picture: googleUser.picture || googleUser.imageUrl || 'https://cdn.vuetifyjs.com/images/avatars/1.jpg',
+      profilePictureUrl: googleUser.picture || googleUser.imageUrl,
       isAdmin: isAdmin.value,
       googleId: googleUser.googleId,
       userId: googleUser.userId,

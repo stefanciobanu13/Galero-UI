@@ -29,7 +29,7 @@ const routes = [
     path: '/attendance',
     name: 'Attendance',
     component: Attendance,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
     path: '/editions',

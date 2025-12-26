@@ -1,6 +1,6 @@
 <template>
-  <v-container class="py-8">
-    <v-row class="mb-6">
+  <v-container class="py-3">
+    <v-row class="mb-1">
       <v-col cols="12">
         <v-card elevation="2">
           <v-card-title class="text-h5">
@@ -8,29 +8,34 @@
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="12" sm="6" md="3">
-                <v-text-field
+              <v-col cols="9" sm="2" md="1">
+                <v-text-field class="inputFields"
                   v-model="searchFirstName"
                   :label="t('pages.addPlayer.firstName')"
                   prepend-icon="mdi-magnify"
                   clearable
+                  density="compact"
+                  hide-details
                 />
               </v-col>
-              <v-col cols="12" sm="6" md="3">
-                <v-text-field
+              <v-col cols="9" sm="2" md="1">
+                <v-text-field class="inputFields"
                   v-model="searchLastName"
                   :label="t('pages.addPlayer.lastName')"
                   prepend-icon="mdi-magnify"
                   clearable
+                  density="compact"
+                  hide-details
                 />
               </v-col>
-              <v-col cols="12" md="6" class="d-flex align-center gap-2">
+              <v-col cols="9" md="2" class="d-flex align-center gap-5" style="padding-top: 8px; gap: 8%;">
                 <v-btn
                   color="info"
                   variant="outlined"
                   prepend-icon="mdi-magnify"
                   @click="handleSearch"
                   :loading="playerStore.loading"
+                  size="x-small"
                 >
                   {{ t('pages.players.search') }}
                 </v-btn>
@@ -38,18 +43,10 @@
                   color="success"
                   variant="outlined"
                   prepend-icon="mdi-plus"
+                  size="x-small"
                   @click="addPlayer"
                 >
                   {{ t('pages.players.addNew') }}
-                </v-btn>
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  prepend-icon="mdi-refresh"
-                  @click="loadPlayers"
-                  :loading="playerStore.loading"
-                >
-                  Reset
                 </v-btn>
               </v-col>
             </v-row>
@@ -81,22 +78,24 @@
           class="elevation-1"
         >
           <template #item.actions="{ item }">
-            <v-btn
-              v-if="authStore.isAdmin"
-              size="small"
-              color="info"
-              variant="text"
-              icon="mdi-pencil"
-              @click="editPlayer(item)"
-            />
-            <v-btn
-              v-if="authStore.isAdmin"
-              size="small"
-              color="error"
-              variant="text"
-              icon="mdi-delete"
-              @click="deletePlayer(item.playerId)"
-            />
+            <div class="d-flex gap-1">
+              <v-btn
+                v-if="authStore.isAdmin"
+                size="small"
+                color="info"
+                variant="text"
+                icon="mdi-pencil"
+                @click="editPlayer(item)"
+              />
+              <v-btn
+                v-if="authStore.isAdmin"
+                size="small"
+                color="error"
+                variant="text"
+                icon="mdi-delete"
+                @click="deletePlayer(item.playerId)"
+              />
+            </div>
           </template>
 
           <template #no-data>
@@ -120,13 +119,13 @@
               v-model="selectedPlayer.firstName"
               label="First Name"
               required
-              class="mb-4"
+              class="mb-1"
             />
             <v-text-field
               v-model="selectedPlayer.lastName"
               label="Last Name"
               required
-              class="mb-4"
+              class="mb-1"
             />
             <v-text-field
               v-model.number="selectedPlayer.grade"
@@ -161,37 +160,59 @@
     </v-dialog>
 
     <!-- Add Player Dialog -->
-    <v-dialog v-model="showAddDialog" max-width="500">
-      <v-card>
-        <v-card-title>Add New Player</v-card-title>
-        <v-card-text>
+    <v-dialog v-model="showAddDialog" max-width="450">
+      <v-card class="addPlayerCard" elevation="8">
+        <v-card-title class="addPlayerTitle">Add new player</v-card-title>
+        <v-card-text class="pt-0">
           <v-form ref="addForm" @submit.prevent="saveNewPlayer">
             <v-text-field
               v-model="newPlayer.firstName"
-              label="First Name"
+              placeholder="First Name"
               required
-              class="mb-4"
+              class="styledInput mb-4"
+              hide-details
+              variant="underlined"
+              density="compact"
             />
             <v-text-field
               v-model="newPlayer.lastName"
-              label="Last Name"
+              placeholder="Last Name"
               required
-              class="mb-4"
+              class="styledInput mb-4"
+              hide-details
+              variant="underlined"
+              density="compact"
             />
             <v-text-field
               v-model.number="newPlayer.grade"
-              label="Grade"
+              placeholder="Grade"
               type="number"
               step="0.1"
               required
+              class="styledInput mb-6"
+              hide-details
+              variant="underlined"
+              density="compact"
             />
+            <div class="buttonContainer">
+              <v-btn
+                color="primary"
+                @click="saveNewPlayer"
+                :loading="playerStore.loading"
+                class="addPlayerBtn"
+              >
+                Add Player
+              </v-btn>
+              <v-btn
+                color="error"
+                @click="showAddDialog = false"
+                class="addPlayerBtn cancelBtn"
+              >
+                Cancel
+              </v-btn>
+            </div>
           </v-form>
         </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn text @click="showAddDialog = false">Cancel</v-btn>
-          <v-btn color="success" @click="saveNewPlayer" :loading="playerStore.loading">Add Player</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
   </v-container>
@@ -300,7 +321,7 @@ const saveNewPlayer = async () => {
       newPlayer.value = {
         firstName: '',
         lastName: '',
-        grade: 0,
+        grade: 0
       };
     } catch {
       // Error is handled by store
@@ -310,4 +331,74 @@ const saveNewPlayer = async () => {
 </script>
 
 <style scoped>
+  .inputFields {
+    font-size: 0.875rem;
+  }
+
+  :deep(.v-data-table__tr) {
+    height: 40px !important;
+  }
+
+  .addPlayerCard {
+    border-radius: 24px !important;
+    padding-bottom: 24px;
+  }
+
+  :deep(.styledInput .v-field) {
+    background-color: transparent;
+  }
+
+  :deep(.styledInput .v-field__input) {
+    font-size: 0.95rem;
+    color: #333;
+  }
+
+  :deep(.styledInput .v-field__input::placeholder) {
+    color: #363636;
+  }
+
+  :deep(.styledInput .v-field__underline::before) {
+    border-bottom-width: 1px !important;
+  }
+
+  :deep(.styledInput.v-field--focused .v-field__underline::before) {
+    border-bottom-width: 1px !important;
+  }
+
+  :deep(.styledInput .v-field__underline::after) {
+    border-bottom-width: 1px !important;
+    transition: none !important;
+  }
+
+  :deep(.styledInput.v-field--focused .v-field__underline::after) {
+    border-bottom-width: 1px !important;
+  }
+
+  .buttonContainer {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+  }
+
+  .addPlayerBtn {
+    border-radius: 24px !important;
+    height: 40px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: none;
+    width: 140px;
+  }
+
+  .cancelBtn {
+    margin: 0 !important;
+  }
+
+  .addPlayerTitle {
+    text-align: center;
+    padding-top: 32px;
+    padding-bottom: 8px;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1a237e;
+  }
 </style>

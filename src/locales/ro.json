@@ -42,8 +42,8 @@
       "grade": "Grad",
       "email": "E-mail",
       "noPlayers": "Nu au fost găsiți jucători",
-      "addNew": "Adaugă Jucător Nou",
-      "search": "Cauta jucători..."
+      "addNew": "Adaugă Jucător",
+      "search": "Cauta jucător"
     },
     "addPlayer": {
       "title": "Adaugă Jucător",
@@ -119,7 +119,7 @@
       "placement": "Plasament",
       "noGoals": "Nu au fost marcate goluri încă",
       "noHistory": "Nu există istoric de ediții",
-      "accountStatus": "Status Cont",
+      "accountStatus": "Rol",
       "admin": "Administrator",
       "user": "Utilizator",
       "assignedPlayer": "Jucător Alocat",

@@ -8,20 +8,20 @@
           </v-card-title>
 
           <v-card-text>
-            <div class="text-center mb-8">
+            <div class="text-center mb-1">
               <v-avatar
-                :image="authStore.user?.picture || 'https://cdn.vuetifyjs.com/images/avatars/1.jpg'"
-                size="120"
+                :image="authStore.user?.profilePictureUrl || authStore.user?.picture || 'https://cdn.vuetifyjs.com/images/avatars/1.jpg'"
+                size="100"
                 color="primary"
               />
             </div>
 
-            <div class="mb-6">
+            <div class="mb-1">
               <p class="text-overline text-grey">{{ t('pages.profile.email') }}</p>
               <p class="text-body1">{{ authStore.user?.email }}</p>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-1">
               <p class="text-overline text-grey">{{ t('pages.profile.name') }}</p>
               <p class="text-body1">{{ authStore.user?.name }}</p>
               <p v-if="authStore.user?.playerId" class="text-body2 text-grey mt-2">
@@ -29,7 +29,7 @@
               </p>
             </div>
 
-            <v-divider class="my-6" />
+            <v-divider class="my-2" />
 
             <div class="mb-6">
               <p class="text-overline text-grey">{{ t('pages.profile.accountStatus') }}</p>
@@ -45,7 +45,7 @@
             <v-divider class="my-6" />
 
             <!-- Statistics Section -->
-            <div class="mb-6">
+            <div class="mb-6 userInformation">
               <p class="text-overline text-grey mb-3">{{ t('pages.profile.statistics') }}</p>
               <v-card v-if="authStore.user?.playerId" variant="outlined" class="pa-4 mb-3">
                 <div class="d-flex align-center justify-space-between">
@@ -68,36 +68,7 @@
                 <v-icon color="warning">mdi-alert-circle</v-icon>
                 <span class="text-body2 text-grey">{{ t('pages.profile.noPlayerAssigned') }}</span>
               </div>
-              <div class="d-flex gap-2">
-                <v-btn
-                  v-if="authStore.user?.playerId"
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  @click="showChangePlayerModal = true"
-                  :loading="isChangingPlayer"
-                >
-                  {{ t('pages.profile.changePlayer') }}
-                </v-btn>
-                <v-btn
-                  v-else
-                  size="small"
-                  color="primary"
-                  @click="showChangePlayerModal = true"
-                >
-                  {{ t('pages.profile.assignPlayer') }}
-                </v-btn>
-                <v-btn
-                  v-if="authStore.user?.playerId"
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  @click="handleUnassignPlayer"
-                  :loading="isUnassigningPlayer"
-                >
-                  {{ t('pages.profile.unlink') }}
-                </v-btn>
-              </div>
+
             </div>
 
             <v-divider class="my-6" />
@@ -130,24 +101,6 @@
             </div>
 
             <v-divider class="my-6" />
-
-            <div class="mt-6">
-              <p class="text-body2 text-grey mb-4">
-                Member since: {{ memberSinceDate }}
-              </p>
-            </div>
-
-            <v-btn
-              v-if="authStore.isAdmin"
-              to="/players"
-              color="primary"
-              size="large"
-              block
-              class="mt-6"
-              prepend-icon="mdi-soccer"
-            >
-              {{ t('nav.players') }}
-            </v-btn>
 
             <v-btn
               @click="logout"
@@ -182,13 +135,6 @@
         </v-card>
       </v-col>
     </v-row>
-
-    <!-- Player Selection Modal for Changing Player -->
-    <PlayerSelectionModal
-      v-model:open="showChangePlayerModal"
-      @player-selected="handlePlayerSelected"
-      @skip="showChangePlayerModal = false"
-    />
   </v-container>
 </template>
 
@@ -198,13 +144,9 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { playerService, goalService } from '../services/api';
-import PlayerSelectionModal from '../components/PlayerSelectionModal.vue';
 
 const { t } = useI18n();const router = useRouter();
 const authStore = useAuthStore();
-const showChangePlayerModal = ref(false);
-const isChangingPlayer = ref(false);
-const isUnassigningPlayer = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const playerGoalCount = ref<number>(0);
@@ -303,41 +245,6 @@ watch(() => authStore.user?.playerId, () => {
   loadEditionHistory();
 });
 
-const handlePlayerSelected = async () => {
-  successMessage.value = 'Player assigned successfully!';
-  errorMessage.value = '';
-  isChangingPlayer.value = false;
-  showChangePlayerModal.value = false;
-  
-  setTimeout(() => {
-    successMessage.value = '';
-  }, 3000);
-};
-
-const handleUnassignPlayer = async () => {
-  if (!confirm('Are you sure you want to unlink your player?')) {
-    return;
-  }
-
-  isUnassigningPlayer.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
-
-  try {
-    await authStore.unassignPlayer();
-    successMessage.value = 'Player unlinked successfully!';
-    
-    setTimeout(() => {
-      successMessage.value = '';
-    }, 3000);
-  } catch (error) {
-    console.error('Failed to unassign player:', error);
-    errorMessage.value = 'Failed to unlink player. Please try again.';
-  } finally {
-    isUnassigningPlayer.value = false;
-  }
-};
-
 const logout = () => {
   authStore.logout();
   router.push('/login');
@@ -350,4 +257,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+.userInformation {
+ font-size: small;
+}
 </style>

@@ -60,7 +60,7 @@
 
           <!-- Attendance Item -->
           <v-list-item
-            v-if="authStore.isLoggedIn"
+            v-if="authStore.isLoggedIn && authStore.isAdmin"
             :title="t('nav.attendance')"
             to="/attendance"
             prepend-icon="mdi-calendar-check"
