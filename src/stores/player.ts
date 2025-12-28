@@ -85,6 +85,10 @@ export const usePlayerStore = defineStore('player', () => {
     }
   };
 
+  const setPlayers = (newPlayers: Player[]) => {
+    players.value = newPlayers;
+  };
+
   return {
     players,
     loading,
@@ -94,5 +98,6 @@ export const usePlayerStore = defineStore('player', () => {
     updatePlayer,
     deletePlayer,
     searchPlayers,
+    setPlayers,
   };
 });

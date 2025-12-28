@@ -95,7 +95,7 @@ export const attendanceService = {
   },
 
   submitAttendance: (attendanceData: any) => {
-    return api.post('/attendance/submit', attendanceData);
+    return api.post('/attendance', attendanceData);
   },
 
   updateAttendance: (attendanceId: number, attendanceData: any) => {

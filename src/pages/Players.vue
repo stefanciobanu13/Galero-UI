@@ -9,7 +9,8 @@
           <v-card-text>
             <v-row>
               <v-col cols="9" sm="2" md="1">
-                <v-text-field class="inputFields"
+                <v-text-field
+                  class="inputFields"
                   v-model="searchFirstName"
                   :label="t('pages.addPlayer.firstName')"
                   prepend-icon="mdi-magnify"
@@ -19,7 +20,8 @@
                 />
               </v-col>
               <v-col cols="9" sm="2" md="1">
-                <v-text-field class="inputFields"
+                <v-text-field
+                  class="inputFields"
                   v-model="searchLastName"
                   :label="t('pages.addPlayer.lastName')"
                   prepend-icon="mdi-magnify"
@@ -29,16 +31,6 @@
                 />
               </v-col>
               <v-col cols="9" md="2" class="d-flex align-center gap-5" style="padding-top: 8px; gap: 8%;">
-                <v-btn
-                  color="info"
-                  variant="outlined"
-                  prepend-icon="mdi-magnify"
-                  @click="handleSearch"
-                  :loading="playerStore.loading"
-                  size="x-small"
-                >
-                  {{ t('pages.players.search') }}
-                </v-btn>
                 <v-btn
                   color="success"
                   variant="outlined"
@@ -219,7 +211,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePlayerStore } from '../stores/player';
 import { useAuthStore } from '../stores/auth';
@@ -242,6 +234,28 @@ const newPlayer = ref<Partial<Player>>({
   grade: 0,
 });
 
+const allPlayers = ref<Player[]>([]);
+
+// Client-side filtering of players
+const filterPlayers = () => {
+  const firstNameQuery = (searchFirstName.value || '').toLowerCase();
+  const lastNameQuery = (searchLastName.value || '').toLowerCase();
+  
+  const filtered = allPlayers.value.filter(player => {
+    const firstName = player.firstName.toLowerCase();
+    const lastName = player.lastName.toLowerCase();
+    
+    return firstName.includes(firstNameQuery) && lastName.includes(lastNameQuery);
+  });
+  
+  playerStore.setPlayers(filtered);
+};
+
+// Watch for changes in search fields and filter players
+watch([searchFirstName, searchLastName], () => {
+  filterPlayers();
+}, { immediate: false });
+
 const headers = computed(() => {
   const baseHeaders = [
     { title: 'First Name', value: 'firstName', sortable: true },
@@ -260,14 +274,13 @@ onMounted(() => {
   loadPlayers();
 });
 
-const loadPlayers = () => {
+const loadPlayers = async () => {
   searchFirstName.value = '';
   searchLastName.value = '';
-  playerStore.fetchPlayers();
-};
-
-const handleSearch = () => {
-  playerStore.searchPlayers(searchFirstName.value, searchLastName.value);
+  await playerStore.fetchPlayers();
+  // Store all players for client-side filtering
+  allPlayers.value = [...playerStore.players];
+  playerStore.setPlayers(allPlayers.value);
 };
 
 const editPlayer = (player: Player) => {

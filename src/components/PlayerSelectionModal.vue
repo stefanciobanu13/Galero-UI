@@ -50,9 +50,6 @@
                   <p class="font-weight-bold mb-0">
                     {{ player.firstName }} {{ player.lastName }}
                   </p>
-                  <p class="text-body2 text-grey mb-0">
-                    Grade: {{ player.grade }}
-                  </p>
                 </div>
                 <v-radio
                   :model-value="selectedPlayerId"
@@ -141,7 +138,7 @@ const errorMessage = ref('');
 
 const playerOptions = computed(() => {
   return players.value.map(player => ({
-    label: `${player.firstName} ${player.lastName} (Grade ${player.grade})`,
+    label: `${player.firstName} ${player.lastName}`,
     value: player.playerId || 0,
   }));
 });

@@ -1,9 +1,13 @@
 <template>
-  <v-card class="match-card" :style="{ borderTop: `4px solid ${getHomeTeamColor}` }">
+  <v-card class="match-card" elevation="2">
     <v-card-text>
       <!-- Match Header -->
-      <div class="d-flex justify-space-between align-center mb-4">
-        <span class="text-caption font-weight-bold">Match {{ match.matchNumber }}</span>
+      <div class="match-title-header">
+        <span class="match-title">Match {{ match.matchNumber }}</span>
+      </div>
+
+      <!-- Status Badge -->
+      <div class="text-center mb-4">
         <v-chip 
           :color="match.isPlayed ? 'success' : 'grey'" 
           size="small"
@@ -13,37 +17,71 @@
         </v-chip>
       </div>
 
-      <!-- Teams & Score -->
-      <div class="match-header mb-4 d-flex justify-space-between align-center">
+      <!-- Teams & Score Section -->
+      <div class="teams-score-section">
         <!-- Home Team -->
-        <div class="team-section">
-          <div class="team-header d-flex align-center gap-3">
-            <div class="team-color" :style="{ backgroundColor: getHomeTeamColor }" />
-            <div>
-              <p class="text-caption font-weight-bold text-capitalize m-0">
-                {{ homeTeam?.color || 'Unknown' }}
-              </p>
-              <p class="text-h6 font-weight-bold m-0">{{ match.isPlayed ? (match.homeTeamScore ?? 0) : '-' }}</p>
-            </div>
-          </div>
+        <div class="team-side home-side">
+          <span class="team-name text-capitalize">{{ homeTeam?.color || 'Unknown' }}</span>
+          <div class="team-color-circle" :style="{ backgroundColor: getHomeTeamColor }"></div>
+        </div>
+
+        <!-- Score -->
+        <div class="score-section">
+          <span class="score">{{ match.isPlayed ? (match.homeTeamScore ?? 0) : '-' }}</span>
+          <span class="score-divider">-</span>
+          <span class="score">{{ match.isPlayed ? (match.awayTeamScore ?? 0) : '-' }}</span>
         </div>
 
         <!-- Away Team -->
-        <div class="team-section">
-          <div class="team-header d-flex align-center gap-3 flex-row-reverse">
-            <div class="team-color" :style="{ backgroundColor: getAwayTeamColor }" />
-            <div class="text-right">
-              <p class="text-caption font-weight-bold text-capitalize m-0">
-                {{ awayTeam?.color || 'Unknown' }}
-              </p>
-              <p class="text-h6 font-weight-bold m-0">{{ match.isPlayed ? (match.awayTeamScore ?? 0) : '-' }}</p>
-            </div>
+        <div class="team-side away-side">
+          <div class="team-color-circle" :style="{ backgroundColor: getAwayTeamColor }"></div>
+          <span class="team-name text-capitalize">{{ awayTeam?.color || 'Unknown' }}</span>
+        </div>
+      </div>
+
+      <!-- Goals Section -->
+      <div class="goals-section">
+        <!-- Home Team Goals -->
+        <div class="team-goals home-goals">
+          <div v-for="goal in homeTeamGoals" :key="goal.goalId" class="goal-item">
+            <span class="goal-player">{{ getPlayerName(goal.playerId) }}</span>
+            <span v-if="goal.goalType === 'penalty'" class="goal-type">(P)</span>
+            <span v-if="goal.goalType === 'own_goal'" class="goal-type own-goal">(OG)</span>
+            <span class="goal-icon">⚽</span>
+            <v-btn
+              v-if="canEdit"
+              icon="mdi-close"
+              size="x-small"
+              variant="text"
+              color="error"
+              @click="removeGoal(goal.goalId!)"
+              class="remove-goal-btn"
+            />
+          </div>
+        </div>
+
+        <!-- Away Team Goals -->
+        <div class="team-goals away-goals">
+          <div v-for="goal in awayTeamGoals" :key="goal.goalId" class="goal-item">
+            <v-btn
+              v-if="canEdit"
+              icon="mdi-close"
+              size="x-small"
+              variant="text"
+              color="error"
+              @click="removeGoal(goal.goalId!)"
+              class="remove-goal-btn"
+            />
+            <span class="goal-icon">⚽</span>
+            <span v-if="goal.goalType === 'penalty'" class="goal-type">(P)</span>
+            <span v-if="goal.goalType === 'own_goal'" class="goal-type own-goal">(OG)</span>
+            <span class="goal-player">{{ getPlayerName(goal.playerId) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Mark as Played Button (for 0-0 draws) - Only show when no goals exist -->
-      <div class="mb-4 text-center" v-if="totalGoals === 0 && !match.isPlayed">
+      <!-- Mark as Played Button (for 0-0 draws) -->
+      <div class="text-center my-4" v-if="totalGoals === 0 && !match.isPlayed && canEdit">
         <v-btn
           @click="toggleMatchPlayed"
           color="primary"
@@ -53,124 +91,42 @@
         >
           Mark as Played (0-0)
         </v-btn>
-        <p class="text-caption text-grey mt-2">
-          Click to mark this match as played with 0-0 score, or add goals below to automatically start tracking
-        </p>
       </div>
 
-      <v-divider class="my-4" />
-
-      <!-- Home Team Scorers -->
-      <div class="mb-4">
-        <h4 class="text-caption font-weight-bold mb-2">
-          {{ homeTeam?.color }} Scorers
-        </h4>
-        <div class="scorers-list mb-2" v-if="homeTeamGoals.length > 0">
-          <v-chip
-            v-for="goal in homeTeamGoals"
-            :key="goal.goalId"
-            size="small"
-            :color="getHomeTeamColor"
-            text-color="white"
-            closable
-            @click:close="removeGoal(goal.goalId!)"
-            class="mr-1 mb-1"
-            :class="{ 'own-goal-chip': goal.goalType === 'own_goal' }"
-          >
-            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'own_goal' }">{{ getPlayerName(goal.playerId) }}</span>
-            <span v-if="goal.goalType === 'penalty'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'own_goal'" class="text-xs text-red">(OG)</span>
-          </v-chip>
-        </div>
-        <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
-
-        <!-- Add Goal -->
-        <div class="add-goal-section">
+      <!-- Add Goal Section -->
+      <div v-if="canEdit" class="add-goal-container">
+        <!-- Home Team Add Goal -->
+        <div class="add-goal-side">
           <v-select
-            v-model="homeTeamNewGoalPlayerId"
+            v-model="homeTeamSelectModel"
             :items="homeTeamPlayers"
             item-title="playerDisplayName"
             item-value="playerId"
-            label="Select Player"
+            placeholder="+ Add goal"
             density="compact"
-            class="mb-2"
-          />
-
-          <v-select
-            v-model="homeTeamGoalType"
-            :items="goalTypes"
-            label="Goal Type"
-            density="compact"
-            class="mb-2"
-          />
-
-          <v-btn
-            @click="addHomeTeamGoal"
-            size="small"
             variant="outlined"
-            block
-            :disabled="!homeTeamNewGoalPlayerId"
-          >
-            Add Goal
-          </v-btn>
+            hide-details
+            clearable
+            @update:modelValue="addGoalFromSelect('home', $event)"
+            class="goal-select"
+          />
         </div>
-      </div>
 
-      <v-divider class="my-4" />
-
-      <!-- Away Team Scorers -->
-      <div>
-        <h4 class="text-caption font-weight-bold mb-2">
-          {{ awayTeam?.color }} Scorers
-        </h4>
-        <div class="scorers-list mb-2" v-if="awayTeamGoals.length > 0">
-          <v-chip
-            v-for="goal in awayTeamGoals"
-            :key="goal.goalId"
-            size="small"
-            :color="getAwayTeamColor"
-            text-color="white"
-            closable
-            @click:close="removeGoal(goal.goalId!)"
-            class="mr-1 mb-1"
-            :class="{ 'own-goal-chip': goal.goalType === 'own_goal' }"
-          >
-            <span class="mr-1" :class="{ 'text-red': goal.goalType === 'own_goal' }">{{ getPlayerName(goal.playerId) }}</span>
-            <span v-if="goal.goalType === 'penalty'" class="text-xs">(P)</span>
-            <span v-if="goal.goalType === 'own_goal'" class="text-xs text-red">(OG)</span>
-          </v-chip>
-        </div>
-        <div v-else class="text-caption text-gray-500 mb-2">No goals yet</div>
-
-        <!-- Add Goal -->
-        <div class="add-goal-section">
+        <!-- Away Team Add Goal -->
+        <div class="add-goal-side">
           <v-select
-            v-model="awayTeamNewGoalPlayerId"
+            v-model="awayTeamSelectModel"
             :items="awayTeamPlayers"
             item-title="playerDisplayName"
             item-value="playerId"
-            label="Select Player"
+            placeholder="+ Add goal"
             density="compact"
-            class="mb-2"
-          />
-
-          <v-select
-            v-model="awayTeamGoalType"
-            :items="goalTypes"
-            label="Goal Type"
-            density="compact"
-            class="mb-2"
-          />
-
-          <v-btn
-            @click="addAwayTeamGoal"
-            size="small"
             variant="outlined"
-            block
-            :disabled="!awayTeamNewGoalPlayerId"
-          >
-            Add Goal
-          </v-btn>
+            hide-details
+            clearable
+            @update:modelValue="addGoalFromSelect('away', $event)"
+            class="goal-select"
+          />
         </div>
       </div>
     </v-card-text>
@@ -184,26 +140,21 @@ import type { Match, Goal, Team, Player } from '../types';
 
 interface Props {
   match: Match & { goals: Goal[] };
+  canEdit?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  canEdit: true
+});
 const emit = defineEmits<{
   goalAdded: [];
 }>();
 
 const editionsStore = useEditionsStore();
 
-// State for new goals
-const homeTeamNewGoalPlayerId = ref<number | null>(null);
-const awayTeamNewGoalPlayerId = ref<number | null>(null);
-const homeTeamGoalType = ref<'normal' | 'penalty' | 'own_goal'>('normal');
-const awayTeamGoalType = ref<'normal' | 'penalty' | 'own_goal'>('normal');
-
-const goalTypes = [
-  { title: 'Normal Goal', value: 'normal' },
-  { title: 'Penalty', value: 'penalty' },
-  { title: 'Own Goal', value: 'own_goal' },
-];
+// State for select dropdowns
+const homeTeamSelectModel = ref<number | null>(null);
+const awayTeamSelectModel = ref<number | null>(null);
 
 const colorMap: Record<string, string> = {
   green: '#4CAF50',
@@ -287,39 +238,30 @@ const getPlayerName = (playerId: number): string => {
   return player ? `${player.firstName} ${player.lastName}` : 'Unknown';
 };
 
-const addHomeTeamGoal = async () => {
-  if (homeTeamNewGoalPlayerId.value && homeTeam.value) {
-    try {
-      await editionsStore.addGoal(
-        props.match.matchId!,
-        homeTeamNewGoalPlayerId.value,
-        homeTeam.value.teamId!,
-        homeTeamGoalType.value
-      );
-      homeTeamNewGoalPlayerId.value = null;
-      homeTeamGoalType.value = 'normal';
-      emit('goalAdded');
-    } catch (e) {
-      console.error('Failed to add goal:', e);
-    }
-  }
-};
+const addGoalFromSelect = async (team: 'home' | 'away', playerId: number | null) => {
+  if (!playerId) return;
+  
+  const teamData = team === 'home' ? homeTeam.value : awayTeam.value;
+  if (!teamData) return;
 
-const addAwayTeamGoal = async () => {
-  if (awayTeamNewGoalPlayerId.value && awayTeam.value) {
-    try {
-      await editionsStore.addGoal(
-        props.match.matchId!,
-        awayTeamNewGoalPlayerId.value,
-        awayTeam.value.teamId!,
-        awayTeamGoalType.value
-      );
-      awayTeamNewGoalPlayerId.value = null;
-      awayTeamGoalType.value = 'normal';
-      emit('goalAdded');
-    } catch (e) {
-      console.error('Failed to add goal:', e);
+  try {
+    await editionsStore.addGoal(
+      props.match.matchId!,
+      playerId,
+      teamData.teamId!,
+      'normal'
+    );
+    
+    // Clear selection
+    if (team === 'home') {
+      homeTeamSelectModel.value = null;
+    } else {
+      awayTeamSelectModel.value = null;
     }
+    
+    emit('goalAdded');
+  } catch (e) {
+    console.error('Failed to add goal:', e);
   }
 };
 
@@ -340,59 +282,168 @@ const toggleMatchPlayed = () => {
 
 <style scoped>
 .match-card {
-  transition: all 0.3s ease;
-}
-
-.match-header {
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-}
-
-.team-section {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   width: 100%;
 }
 
-.team-header {
+:deep(.match-card .v-card-text) {
+  padding: 0;
+}
+
+.match-title-header {
+  background-color: #f0f4f8;
+  margin: 0;
+  padding: 14px 16px;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.match-title {
+  color: #1a237e;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.teams-score-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px;
+}
+
+.team-side {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
-.team-color {
-  width: 40px;
-  height: 40px;
+.home-side {
+  justify-content: flex-start;
+}
+
+.away-side {
+  justify-content: flex-end;
+}
+
+.team-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.team-color-circle {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.scorers-list {
+.score-section {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+}
+
+.score {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.score-divider {
+  font-size: 1.5rem;
+  color: #999;
+}
+
+.goals-section {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 16px;
+  min-height: 40px;
+  border-top: 1px solid #eee;
+}
+
+.team-goals {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
+  flex: 1;
 }
 
-.add-goal-section {
-  padding: 12px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
+.home-goals {
+  align-items: flex-start;
 }
 
-.own-goal-chip {
-  border: 2px solid #ff5252 !important;
-  background-color: rgba(255, 82, 82, 0.1) !important;
+.away-goals {
+  align-items: flex-end;
 }
 
-.text-red {
-  color: #ff5252 !important;
+.goal-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  color: #555;
+}
+
+.goal-player {
+  font-weight: 500;
+}
+
+.goal-icon {
+  font-size: 0.75rem;
+}
+
+.goal-type {
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.goal-type.own-goal {
+  color: #ff5252;
+}
+
+.remove-goal-btn {
+  opacity: 0.6;
+}
+
+.remove-goal-btn:hover {
+  opacity: 1;
+}
+
+.add-goal-container {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 16px 16px;
+  border-top: 1px solid #eee;
+}
+
+.add-goal-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.player-dropdown-menu {
+  border-radius: 8px;
+}
+
+.goal-type-menu {
+  border-radius: 8px;
 }
 
 .text-capitalize {
   text-transform: capitalize;
-}
-
-h4 {
-  margin-bottom: 8px;
 }
 </style>
