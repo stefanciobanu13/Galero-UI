@@ -10,181 +10,225 @@
           </v-card-title>
           <v-card-text>
             <p class="text-body2 text-grey">
-              Register attendance for upcoming editions. You can add up to 24 players as substitutes.
+              Register attendance for editions. View and manage past attendances.
             </p>
           </v-card-text>
         </v-card>
 
-        <!-- Edition Information -->
-        <v-card elevation="2" class="mb-6">
-          <v-card-title class="text-h6">
-            Edition Information
-          </v-card-title>
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model.number="editionNumber"
-                  label="Edition Number"
-                  type="number"
-                  variant="outlined"
-                  hint="e.g., 1, 2, 3..."
-                  @change="loadEditionAttendance"
-                  :disabled="!!selectedEditionDate"
-                />
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="selectedEditionDate"
-                  label="Edition Date"
-                  type="date"
-                  variant="outlined"
-                  @change="loadEditionAttendance"
-                  :disabled="!editionNumber"
-                />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <!-- Tabs for New Attendance / Past Attendances -->
+        <v-tabs v-model="activeTab" class="mb-6">
+          <v-tab value="new">Add New Attendance</v-tab>
+          <v-tab value="past">Past Attendances</v-tab>
+        </v-tabs>
 
-        <!-- Current Attendance Stats -->
-        <v-card v-if="selectedEditionDate" elevation="2" class="mb-6">
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" sm="6">
-                <div class="text-center">
-                  <p class="text-overline text-grey">Players Registered</p>
-                  <p class="text-h4 font-weight-bold">
-                    {{ attendancePlayers.length }}<span class="text-h6"> / 24</span>
-                  </p>
-                </div>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-progress-linear
-                  :value="(attendancePlayers.length / 24) * 100"
-                  color="primary"
-                  height="30"
-                  class="mt-4"
-                >
-                  <span class="text-white text-body2">
-                    {{ Math.round((attendancePlayers.length / 24) * 100) }}%
-                  </span>
-                </v-progress-linear>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        <!-- Add New Attendance Tab -->
+        <v-window v-model="activeTab">
+          <v-window-item value="new">
+            <!-- Edition Information -->
+            <v-card elevation="2" class="mb-6">
+              <v-card-title class="text-h6">
+                Edition Information
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model.number="editionNumber"
+                      label="Edition Number"
+                      type="number"
+                      variant="outlined"
+                      hint="e.g., 1, 2, 3..."
+                      @change="loadEditionAttendance"
+                      :disabled="!!selectedEditionDate"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="selectedEditionDate"
+                      label="Edition Date"
+                      type="date"
+                      variant="outlined"
+                      @change="loadEditionAttendance"
+                      :disabled="!editionNumber"
+                    />
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
 
-        <!-- Add Player to Attendance -->
-        <v-card v-if="selectedEditionDate" elevation="2" class="mb-6">
-          <v-card-title class="text-h6">
-            Add Player to Attendance
-          </v-card-title>
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" sm="8">
-                <v-autocomplete
-                  v-model="selectedPlayer"
-                  :items="availablePlayers"
-                  item-title="label"
-                  item-value="playerId"
-                  label="Search and select a player"
-                  variant="outlined"
-                  clearable
-                  :disabled="attendancePlayers.length >= 24"
-                  @update:model-value="selectedPlayer = $event"
-                />
-              </v-col>
-              <v-col cols="12" sm="4">
+            <!-- Current Attendance Stats -->
+            <v-card v-if="selectedEditionDate" elevation="2" class="mb-6">
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <div class="text-center">
+                      <p class="text-overline text-grey">Players Registered</p>
+                      <p class="text-h4 font-weight-bold">
+                        {{ attendancePlayers.length }}
+                      </p>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- Add Player to Attendance -->
+            <v-card v-if="selectedEditionDate" elevation="2" class="mb-6">
+              <v-card-title class="text-h6">
+                Add Player to Attendance
+              </v-card-title>
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12" sm="8">
+                    <v-autocomplete
+                      v-model="selectedPlayer"
+                      :items="availablePlayers"
+                      item-title="label"
+                      item-value="playerId"
+                      label="Search and select a player"
+                      variant="outlined"
+                      clearable
+                      @update:model-value="selectedPlayer = $event"
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-btn
+                      color="primary"
+                      block
+                      @click="addPlayerToAttendance"
+                      :disabled="!selectedPlayer"
+                      :loading="isAddingPlayer"
+                      class="h-100"
+                    >
+                      <v-icon left>mdi-plus</v-icon>
+                      Add Player
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- Attendance List -->
+            <v-card v-if="selectedEditionDate" elevation="2" class="mb-6">
+              <v-card-title class="text-h6">
+                Attendance List - Edition {{ editionNumber }} - {{ selectedEditionDate }}
+              </v-card-title>
+
+              <v-card-text v-if="attendancePlayers.length === 0" class="text-center text-grey py-8">
+                No players added yet. Select players above to add them to the attendance list.
+              </v-card-text>
+
+              <v-table v-else>
+                <thead>
+                  <tr>
+                    <th class="text-left">#</th>
+                    <th class="text-left">First Name</th>
+                    <th class="text-left">Last Name</th>
+                    <th class="text-left">Status</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(player, index) in attendancePlayers" :key="player.playerId">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ player.firstName }}</td>
+                    <td>{{ player.lastName }}</td>
+                    <td>
+                      <v-select
+                        v-model="player.status"
+                        :items="['inscris', 'retras', 'rezerva']"
+                        density="compact"
+                        variant="outlined"
+                        @update:model-value="onStatusChange(player)"
+                        hide-details
+                      />
+                    </td>
+                    <td class="text-center">
+                      <v-btn
+                        icon="mdi-delete"
+                        size="small"
+                        variant="text"
+                        color="error"
+                        @click="removePlayerFromAttendance(player.playerId)"
+                        :loading="isRemovingPlayer === player.playerId"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </v-table>
+
+              <v-card-actions v-if="attendancePlayers.length > 0">
+                <v-spacer />
                 <v-btn
                   color="primary"
-                  block
-                  @click="addPlayerToAttendance"
-                  :disabled="!selectedPlayer || attendancePlayers.length >= 24"
-                  class="h-100"
+                  @click="proceedToTeamCreation"
+                  :loading="isCreatingEdition"
                 >
-                  <v-icon left>mdi-plus</v-icon>
-                  Add Player
+                  Proceed to Team Creation
                 </v-btn>
-              </v-col>
-            </v-row>
+              </v-card-actions>
+            </v-card>
+          </v-window-item>
 
-            <v-alert
-              v-if="attendancePlayers.length >= 24"
-              type="info"
-              variant="tonal"
-              class="mt-4"
-            >
-              Maximum capacity (24 players) reached
-            </v-alert>
-          </v-card-text>
-        </v-card>
+          <!-- Past Attendances Tab -->
+          <v-window-item value="past">
+            <v-card elevation="2">
+              <v-card-title class="text-h6">
+                Past Attendances
+              </v-card-title>
+              <v-card-text>
+                <v-alert v-if="pastAttendances.length === 0" type="info" class="mb-4">
+                  No past attendances found.
+                </v-alert>
 
-        <!-- Attendance List -->
-        <v-card v-if="selectedEditionDate" elevation="2">
-          <v-card-title class="text-h6">
-            Attendance List - Edition {{ editionNumber }} - {{ selectedEditionDate }}
-          </v-card-title>
-
-          <v-card-text v-if="attendancePlayers.length === 0" class="text-center text-grey py-8">
-            No players added yet. Select players above to add them to the attendance list.
-          </v-card-text>
-
-          <v-table v-else>
-            <thead>
-              <tr>
-                <th class="text-left">#</th>
-                <th class="text-left">First Name</th>
-                <th class="text-left">Last Name</th>
-                <th class="text-left">Status</th>
-                <th class="text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(player, index) in attendancePlayers" :key="player.playerId">
-                <td>{{ index + 1 }}</td>
-                <td>{{ player.firstName }}</td>
-                <td>{{ player.lastName }}</td>
-                <td>
-                  <v-chip 
-                    :color="player.status === 'player' ? 'success' : 'warning'" 
-                    variant="outlined" 
-                    size="small"
-                  >
-                    {{ player.status === 'player' ? 'Player' : 'Substitute' }}
-                  </v-chip>
-                </td>
-                <td class="text-center">
-                  <v-btn
-                    icon="mdi-delete"
-                    size="small"
-                    variant="text"
-                    color="error"
-                    @click="removePlayerFromAttendance(player.playerId)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-
-          <v-card-actions v-if="attendancePlayers.length > 0">
-            <v-spacer />
-            <v-btn
-              color="error"
-              variant="outlined"
-              @click="clearAllAttendance"
-            >
-              Clear All
-            </v-btn>
-            <v-btn
-              color="primary"
-              @click="submitAttendance"
-              :loading="isSubmitting"
-            >
-              Submit Attendance
-            </v-btn>
-          </v-card-actions>
-        </v-card>
+                <v-expansion-panels v-else v-model="expandedPanels" @update:model-value="onPanelExpanded">
+                  <v-expansion-panel v-for="pastAttendance in pastAttendances" :key="pastAttendance.editionId" :value="pastAttendance.editionId">
+                    <v-expansion-panel-title>
+                      <v-row class="align-center w-100">
+                        <v-col cols="auto">
+                          <strong>Edition {{ pastAttendance.editionNumber }}</strong>
+                        </v-col>
+                        <v-col cols="auto">
+                          {{ formatDate(pastAttendance.date) }}
+                        </v-col>
+                        <v-col cols="auto" class="ml-auto">
+                          <v-chip v-if="pastAttendance.attendanceRecords" size="small">
+                            {{ pastAttendance.attendanceRecords.length }} players
+                          </v-chip>
+                        </v-col>
+                      </v-row>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <v-divider class="mb-4" />
+                      <p v-if="pastAttendance.attendanceRecords && pastAttendance.attendanceRecords.length === 0" class="text-grey">
+                        No players in this attendance
+                      </p>
+                      <v-list v-else-if="pastAttendance.attendanceRecords">
+                        <v-list-item v-for="(record, index) in pastAttendance.attendanceRecords" :key="record.player.playerId">
+                          <template #prepend>
+                            <span class="font-weight-bold mr-4">{{ index + 1 }}</span>
+                          </template>
+                          <v-list-item-title>
+                            {{ record.player.firstName }} {{ record.player.lastName }}
+                          </v-list-item-title>
+                          <template #append>
+                            <v-chip 
+                              size="small"
+                              :color="record.status === 'inscris' ? 'success' : record.status === 'retras' ? 'error' : 'warning'"
+                              variant="tonal"
+                            >
+                              {{ record.status }}
+                            </v-chip>
+                          </template>
+                        </v-list-item>
+                      </v-list>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </v-card-text>
+            </v-card>
+          </v-window-item>
+        </v-window>
 
         <!-- Messages -->
         <v-alert
@@ -319,18 +363,25 @@ import { playerService, attendanceService, editionService, teamService, teamPlay
 import type { Player } from '../types';
 
 interface AttendancePlayer extends Player {
-  status?: 'player' | 'substitute';
+  status?: 'inscris' | 'retras' | 'rezerva';
 }
 
 const router = useRouter();
 const editionNumber = ref<number | null>(null);
 const selectedEditionDate = ref('');
 const selectedPlayer = ref<number | null>(null);
+const currentEditionId = ref<number | null>(null);
 const attendancePlayers = ref<AttendancePlayer[]>([]);
 const allPlayers = ref<Player[]>([]);
 const isSubmitting = ref(false);
+const isAddingPlayer = ref(false);
+const isRemovingPlayer = ref<number | null>(null);
+const isCreatingEdition = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const activeTab = ref('new');
+const pastAttendances = ref<Array<{ editionId: number; editionNumber: number; date: string; attendanceRecords: Array<{ player: Player; status?: 'inscris' | 'retras' | 'rezerva' }> | null; isLoading?: boolean }>>([]);
+const expandedPanels = ref<number[]>([]);
 
 // Team creation related
 const showTeamCreationDialog = ref(false);
@@ -338,12 +389,12 @@ const createdEditionNumber = ref<number | null>(null);
 const createdEditionId = ref<number | null>(null);
 const isSavingTeams = ref(false);
 const draggedPlayer = ref<AttendancePlayer | null>(null);
-const teamColors: Array<'green' | 'orange' | 'gray' | 'blue'> = ['green', 'orange', 'gray', 'blue'];
-const teams = ref<Record<'green' | 'orange' | 'gray' | 'blue', AttendancePlayer[]>>({
-  green: [],
-  orange: [],
-  gray: [],
-  blue: [],
+const teamColors: Array<'verde' | 'portocaliu' | 'gri' | 'albastru'> = ['verde', 'portocaliu', 'gri', 'albastru'];
+const teams = ref<Record<'verde' | 'portocaliu' | 'gri' | 'albastru', AttendancePlayer[]>>({
+  verde: [],
+  portocaliu: [],
+  gri: [],
+  albastru: [],
 });
 
 // Local storage key for attendance data
@@ -352,12 +403,19 @@ const getAttendanceKey = (date: string) => `attendance_${date}`;
 // Get team color value for styling
 const getTeamColor = (color: string): string => {
   const colorMap: Record<string, string> = {
-    green: '#4CAF50',
-    orange: '#FF9800',
-    gray: '#9E9E9E',
-    blue: '#2196F3',
+    verde: '#4CAF50',
+    portocaliu: '#FF9800',
+    gri: '#9E9E9E',
+    albastru: '#2196F3',
   };
-  return colorMap[color] || '#000';
+  return colorMap[color] || '#FFFFFF';
+};
+
+// Format date
+const formatDate = (dateString: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 // Computed list of available players (not yet in attendance)
@@ -392,7 +450,7 @@ const areAllPlayersAssigned = computed(() => {
 
 // Helper to get team players with type safety
 const getTeamPlayers = (color: string) => {
-  return teams.value[color as 'green' | 'orange' | 'gray' | 'blue'] || [];
+  return teams.value[color as 'verde' | 'portocaliu' | 'gri' | 'albastru'] || [];
 };
 
 // Load all players on mount
@@ -410,6 +468,7 @@ const loadAllPlayers = async () => {
 const loadEditionAttendance = async () => {
   if (!selectedEditionDate.value) {
     attendancePlayers.value = [];
+    currentEditionId.value = null;
     return;
   }
 
@@ -427,35 +486,100 @@ const loadEditionAttendance = async () => {
 
 // Add player to attendance
 const addPlayerToAttendance = async () => {
-  if (!selectedPlayer.value || !selectedEditionDate.value) return;
+  if (!selectedPlayer.value || !selectedEditionDate.value || !editionNumber.value) return;
 
   try {
+    isAddingPlayer.value = true;
     errorMessage.value = '';
+    
     const player = allPlayers.value.find(p => p.playerId === selectedPlayer.value);
-    if (player) {
-      // Determine status: 'player' for first 24, 'substitute' for additional
-      const status: 'player' | 'substitute' = attendancePlayers.value.length < 24 ? 'player' : 'substitute';
-      const playerWithStatus: AttendancePlayer = {
-        ...player,
-        status,
-      };
-      attendancePlayers.value.push(playerWithStatus);
-      selectedPlayer.value = null;
-      successMessage.value = `${player.firstName} ${player.lastName} added to attendance`;
-      setTimeout(() => {
-        successMessage.value = '';
-      }, 3000);
+    if (!player) return;
+
+    // Step 1: Get existing edition by number
+    let editionId: number;
+    try {
+      const existingEdition = await editionService.getByNumber(editionNumber.value);
+      editionId = existingEdition.data.editionId!;
+      currentEditionId.value = editionId;
+    } catch {
+      throw new Error('Edition does not exist. Please create it first before adding players.');
     }
+
+    // Step 2: Calculate status before submission
+    // Set status: inscris for first 24 players, rezerva after
+    const status: 'inscris' | 'retras' | 'rezerva' = attendancePlayers.value.length >= 24 ? 'rezerva' : 'inscris';
+
+    // Step 3: Submit attendance immediately for this player with status
+    await attendanceService.submitAttendance({
+      editionId: editionId,
+      playerId: player.playerId,
+      date: selectedEditionDate.value,
+      status: status,
+    });
+
+    // Step 4: Add to local list
+    const playerWithStatus: AttendancePlayer = {
+      ...player,
+      status: status,
+    };
+    attendancePlayers.value.push(playerWithStatus);
+    selectedPlayer.value = null;
+    
+    successMessage.value = `${player.firstName} ${player.lastName} added to attendance successfully`;
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
   } catch (error) {
     console.error('Failed to add player:', error);
-    errorMessage.value = 'Failed to add player to attendance';
+    errorMessage.value = error instanceof Error 
+      ? `Failed to add player: ${error.message}`
+      : 'Failed to add player to attendance';
+  } finally {
+    isAddingPlayer.value = false;
   }
 };
 
+// Handle status change for a player
+const onStatusChange = (player: AttendancePlayer) => {
+  // Status is changed in the local list
+  // The updated status will be sent to the backend when proceeding to team creation
+  // or when finalizing the attendance
+  console.log(`Player ${player.firstName} ${player.lastName} status changed to ${player.status}`);
+  // You can add visual feedback here if needed
+};
+
 // Remove player from attendance
-const removePlayerFromAttendance = (playerId: number | undefined) => {
-  if (playerId !== undefined) {
+const removePlayerFromAttendance = async (playerId: number | undefined) => {
+  if (playerId === undefined || !currentEditionId.value) return;
+
+  try {
+    isRemovingPlayer.value = playerId;
+    errorMessage.value = '';
+    
+    // Step 1: Get all attendance records for the current edition
+    const attendanceResponse = await attendanceService.getAttendanceByEdition(currentEditionId.value);
+    const attendanceRecords = attendanceResponse.data || [];
+    
+    // Step 2: Find the attendance record for this player
+    const attendanceRecord = attendanceRecords.find((record: any) => record.playerId === playerId);
+    
+    if (attendanceRecord && attendanceRecord.attendanceId) {
+      // Step 3: Delete from database
+      await attendanceService.deleteAttendance(attendanceRecord.attendanceId);
+    }
+    
+    // Step 4: Remove from local list
     attendancePlayers.value = attendancePlayers.value.filter(p => p.playerId !== playerId);
+    
+    successMessage.value = 'Player removed from attendance';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to remove player:', error);
+    errorMessage.value = 'Failed to remove player from attendance';
+  } finally {
+    isRemovingPlayer.value = null;
   }
 };
 
@@ -463,6 +587,140 @@ const removePlayerFromAttendance = (playerId: number | undefined) => {
 const clearAllAttendance = () => {
   if (confirm('Are you sure you want to clear all players from attendance?')) {
     attendancePlayers.value = [];
+  }
+};
+
+// Load past attendances (only editions, not the players yet)
+const loadPastAttendances = async () => {
+  try {
+    const editionsResponse = await editionService.getAll();
+    const editions = editionsResponse.data;
+
+    pastAttendances.value = editions.map(edition => ({
+      editionId: edition.editionId!,
+      editionNumber: edition.editionNumber || 0,
+      date: edition.date,
+      attendanceRecords: null, // Will be loaded on expansion
+      isLoading: false,
+    })).sort((a, b) => b.editionNumber - a.editionNumber);
+  } catch (error) {
+    console.error('Failed to load past attendances:', error);
+  }
+};
+
+// Load attendance records for a specific edition (called when user expands)
+const loadAttendanceForEdition = async (editionId: number) => {
+  const attendanceItem = pastAttendances.value.find(a => a.editionId === editionId);
+  if (!attendanceItem) return;
+
+  // If already loaded, don't fetch again
+  if (attendanceItem.attendanceRecords !== null) return;
+
+  try {
+    attendanceItem.isLoading = true;
+
+    // Make sure all players are loaded
+    if (allPlayers.value.length === 0) {
+      const playersResponse = await playerService.getAll();
+      allPlayers.value = playersResponse.data;
+    }
+
+    // Get attendance records for this edition using edition ID
+    const attendanceResponse = await attendanceService.getAttendanceByEdition(editionId);
+    const attendanceRecords = attendanceResponse.data || [];
+    
+    // Get player details from the already loaded allPlayers list and include status
+    const attendanceWithPlayers = attendanceRecords
+      .map((record: any) => {
+        const player = allPlayers.value.find(p => p.playerId === record.playerId);
+        if (player) {
+          return {
+            player,
+            status: record.status as 'inscris' | 'retras' | 'rezerva',
+          };
+        }
+        return null;
+      })
+      .filter((item: any) => item !== null);
+
+    attendanceItem.attendanceRecords = attendanceWithPlayers;
+  } catch (error) {
+    console.warn(`Failed to fetch attendance for edition ${attendanceItem.editionNumber}:`, error);
+    attendanceItem.attendanceRecords = [];
+  } finally {
+    attendanceItem.isLoading = false;
+  }
+};
+
+// Handler for when a panel is expanded
+const onPanelExpanded = (expandedIds: unknown) => {
+  if (expandedIds === undefined || expandedIds === null) return;
+  
+  // Convert to array if single value
+  const ids = Array.isArray(expandedIds) ? expandedIds : [expandedIds];
+  
+  // Load attendance for newly expanded panels
+  for (const editionId of ids) {
+    if (typeof editionId !== 'number') continue;
+    const attendanceItem = pastAttendances.value.find(a => a.editionId === editionId);
+    if (attendanceItem && attendanceItem.attendanceRecords === null && !attendanceItem.isLoading) {
+      loadAttendanceForEdition(editionId);
+    }
+  }
+};
+
+// Proceed to team creation
+const proceedToTeamCreation = async () => {
+  if (!editionNumber.value || !selectedEditionDate.value || attendancePlayers.value.length === 0) {
+    errorMessage.value = 'Missing edition information or players';
+    return;
+  }
+
+  isCreatingEdition.value = true;
+  try {
+    errorMessage.value = '';
+
+    // Get or create edition
+    let editionId: number;
+    try {
+      const editionResponse = await editionService.create({
+        editionNumber: editionNumber.value,
+        date: selectedEditionDate.value,
+      });
+      editionId = editionResponse.data.editionId!;
+    } catch (error: any) {
+      if (error.response?.status === 409 || error.response?.status === 400) {
+        const existingEdition = await editionService.getByNumber(editionNumber.value);
+        editionId = existingEdition.data.editionId!;
+      } else {
+        throw error;
+      }
+    }
+
+    // Reset teams for new edition
+    teams.value = {
+      verde: [],
+      portocaliu: [],
+      gri: [],
+      albastru: [],
+    };
+
+    // Show team creation dialog
+    createdEditionNumber.value = editionNumber.value;
+    createdEditionId.value = editionId;
+    showTeamCreationDialog.value = true;
+
+    successMessage.value = 'Proceeding to team creation...';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 2000);
+  } catch (error) {
+    console.error('Failed to proceed:', error);
+    errorMessage.value = error instanceof Error 
+      ? `Failed: ${error.message}`
+      : 'Failed to proceed to team creation';
+  } finally {
+    isCreatingEdition.value = false;
   }
 };
 
@@ -480,7 +738,7 @@ const selectPlayerForTeam = (player: AttendancePlayer) => {
 
 const assignPlayerToTeam = (teamColor: string) => {
   if (draggedPlayer.value) {
-    const teamPlayers = teams.value[teamColor as 'green' | 'orange' | 'gray' | 'blue'];
+    const teamPlayers = teams.value[teamColor as 'verde' | 'portocaliu' | 'gri' | 'albastru'];
     if (teamPlayers && !teamPlayers.find(p => p.playerId === draggedPlayer.value!.playerId)) {
       teamPlayers.push(draggedPlayer.value);
       draggedPlayer.value = null;
@@ -490,9 +748,9 @@ const assignPlayerToTeam = (teamColor: string) => {
 
 const removePlayerFromTeam = (teamColor: string, playerId: number | undefined) => {
   if (playerId !== undefined) {
-    const teamPlayers = teams.value[teamColor as 'green' | 'orange' | 'gray' | 'blue'];
+    const teamPlayers = teams.value[teamColor as 'verde' | 'portocaliu' | 'gri' | 'albastru'];
     if (teamPlayers) {
-      teams.value[teamColor as 'green' | 'orange' | 'gray' | 'blue'] = teamPlayers.filter(p => p.playerId !== playerId);
+      teams.value[teamColor as 'verde' | 'portocaliu' | 'gri' | 'albastru'] = teamPlayers.filter(p => p.playerId !== playerId);
     }
   }
 };
@@ -507,10 +765,10 @@ const cancelTeamCreation = () => {
     selectedPlayer.value = null;
     // Reset teams
     teams.value = {
-      green: [],
-      orange: [],
-      gray: [],
-      blue: [],
+      verde: [],
+      portocaliu: [],
+      gri: [],
+      albastru: [],
     };
   }
 };
@@ -525,12 +783,20 @@ const saveTeams = async () => {
   try {
     errorMessage.value = '';
 
+    // Color mapping from Romanian to English for backend
+    const colorMap: Record<string, 'green' | 'orange' | 'gray' | 'blue'> = {
+      verde: 'green',
+      portocaliu: 'orange',
+      gri: 'gray',
+      albastru: 'blue',
+    };
+
     // Create teams in backend
     const teamIdMap: Record<string, number> = {};
     for (const color of teamColors) {
       const teamResponse = await teamService.create({
         editionId: createdEditionId.value,
-        color: color as 'green' | 'orange' | 'gray' | 'blue',
+        color: colorMap[color] as 'green' | 'orange' | 'gray' | 'blue',
       });
       teamIdMap[color] = teamResponse.data.teamId!;
     }
@@ -559,10 +825,10 @@ const saveTeams = async () => {
       attendancePlayers.value = [];
       selectedPlayer.value = null;
       teams.value = {
-        green: [],
-        orange: [],
-        gray: [],
-        blue: [],
+        verde: [],
+        portocaliu: [],
+        gri: [],
+        albastru: [],
       };
       // Navigate to editions page, optionally with the edition ID
       router.push(`/editions`);
@@ -615,8 +881,6 @@ const submitAttendance = async () => {
     const attendanceDataList = attendancePlayers.value.map(player => ({
       editionId: editionId,
       playerId: player.playerId,
-      playerFirstName: player.firstName,
-      playerLastName: player.lastName,
       date: selectedEditionDate.value,
     }));
 
@@ -629,10 +893,10 @@ const submitAttendance = async () => {
 
     // Reset teams for new edition
     teams.value = {
-      green: [],
-      orange: [],
-      gray: [],
-      blue: [],
+      verde: [],
+      portocaliu: [],
+      gri: [],
+      albastru: [],
     };
 
     // Show team creation dialog
@@ -655,6 +919,7 @@ const submitAttendance = async () => {
 
 onMounted(() => {
   loadAllPlayers();
+  loadPastAttendances();
 });
 </script>
 

@@ -278,8 +278,8 @@ export const useEditionsStore = defineStore('editions', () => {
       teams.value = fullEditionData.teams.map((team: any) => ({
         teamId: team.teamId,
         editionId: fullEditionData.editionId,
-        color: team.teamColor as 'green' | 'orange' | 'gray' | 'blue',
-        players: team.players || [],
+        color: (team.color || team.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
+        players: Array.isArray(team.players) ? team.players : [],
         createdAt: team.createdAt,
         updatedAt: team.updatedAt,
       }));
@@ -290,6 +290,16 @@ export const useEditionsStore = defineStore('editions', () => {
         editionId: fullEditionData.editionId,
         homeTeamId: match.team1Id,
         awayTeamId: match.team2Id,
+        homeTeam: match.team1 ? {
+          teamId: match.team1.teamId,
+          editionId: fullEditionData.editionId,
+          color: (match.team1.color || match.team1.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
+        } : undefined,
+        awayTeam: match.team2 ? {
+          teamId: match.team2.teamId,
+          editionId: fullEditionData.editionId,
+          color: (match.team2.color || match.team2.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
+        } : undefined,
         matchNumber: match.stage,
         matchType: match.matchType as 'group' | 'small_final' | 'big_final',
         homeTeamScore: match.team1Score,

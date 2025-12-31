@@ -176,7 +176,7 @@ const colorMap: Record<string, string> = {
 };
 
 const getColorValue = (color: string): string => {
-  return colorMap[color] || '#000';
+  return colorMap[color] || '#FFFFFF';
 };
 
 const getWinRate = (wins: number, matches: number): string => {

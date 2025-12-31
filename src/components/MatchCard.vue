@@ -7,7 +7,7 @@
       </div>
 
       <!-- Status Badge -->
-      <div class="text-center mb-4">
+      <div class="text-center mb-2 my-3">
         <v-chip 
           :color="match.isPlayed ? 'success' : 'grey'" 
           size="small"
@@ -21,8 +21,8 @@
       <div class="teams-score-section">
         <!-- Home Team -->
         <div class="team-side home-side">
-          <span class="team-name text-capitalize">{{ homeTeam?.color || 'Unknown' }}</span>
-          <div class="team-color-circle" :style="{ backgroundColor: getHomeTeamColor }"></div>
+          <span class="team-name text-capitalize"> </span>
+          <div class="team-color-circle mb-2" :style="{ backgroundColor: getHomeTeamColor }"></div>
         </div>
 
         <!-- Score -->
@@ -34,8 +34,8 @@
 
         <!-- Away Team -->
         <div class="team-side away-side">
-          <div class="team-color-circle" :style="{ backgroundColor: getAwayTeamColor }"></div>
-          <span class="team-name text-capitalize">{{ awayTeam?.color || 'Unknown' }}</span>
+          <div class="team-color-circle mb-2" :style="{ backgroundColor: getAwayTeamColor }"></div>
+          <span class="team-name text-capitalize"> </span>
         </div>
       </div>
 
@@ -72,10 +72,10 @@
               @click="removeGoal(goal.goalId!)"
               class="remove-goal-btn"
             />
-            <span class="goal-icon">⚽</span>
             <span v-if="goal.goalType === 'penalty'" class="goal-type">(P)</span>
             <span v-if="goal.goalType === 'own_goal'" class="goal-type own-goal">(OG)</span>
             <span class="goal-player">{{ getPlayerName(goal.playerId) }}</span>
+            <span class="goal-icon">⚽</span>
           </div>
         </div>
       </div>
@@ -132,14 +132,14 @@
     </v-card-text>
   </v-card>
 </template>
-
+1234``
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useEditionsStore } from '../stores/editions';
-import type { Match, Goal, Team, Player } from '../types';
+import type { Match, Goal, Team } from '../types';
 
 interface Props {
-  match: Match & { goals: Goal[] };
+  match: Match & { goals: Goal[]; homeTeam?: Team; awayTeam?: Team };
   canEdit?: boolean;
 }
 
@@ -157,34 +157,46 @@ const homeTeamSelectModel = ref<number | null>(null);
 const awayTeamSelectModel = ref<number | null>(null);
 
 const colorMap: Record<string, string> = {
-  green: '#4CAF50',
-  orange: '#FF9800',
-  gray: '#9E9E9E',
-  blue: '#2196F3',
+ verde: '#9cff7a',
+  portocaliu: '#fcb142',
+  gri: '#e3e1e1',
+  albastru: '#80d2ff',
 };
 
-// Teams and Players
-const homeTeam = computed(() => 
-  editionsStore.teams.find(t => t.teamId === props.match.homeTeamId)
-);
+// Teams and Players - Use embedded team data if available, otherwise lookup from store
+const homeTeam = computed(() => {
+  // First try embedded team data from the match
+  if (props.match.homeTeam) {
+    return props.match.homeTeam;
+  }
+  // Fall back to looking up from store
+  return editionsStore.teams.find(t => t.teamId === props.match.homeTeamId);
+});
 
-const awayTeam = computed(() =>
-  editionsStore.teams.find(t => t.teamId === props.match.awayTeamId)
-);
+const awayTeam = computed(() => {
+  // First try embedded team data from the match
+  if (props.match.awayTeam) {
+    return props.match.awayTeam;
+  }
+  // Fall back to looking up from store
+  return editionsStore.teams.find(t => t.teamId === props.match.awayTeamId);
+});
 
 const homeTeamPlayers = computed(() => {
-  const team = homeTeam.value;
-  if (!team) return [];
-  return (team.players || []).map(p => ({
+  // Get team from store to access players
+  const storeTeam = editionsStore.teams.find(t => t.teamId === props.match.homeTeamId);
+  if (!storeTeam) return [];
+  return (storeTeam.players || []).map((p: any) => ({
     playerId: p.playerId,
     playerDisplayName: `${p.firstName} ${p.lastName}`,
   }));
 });
 
 const awayTeamPlayers = computed(() => {
-  const team = awayTeam.value;
-  if (!team) return [];
-  return (team.players || []).map(p => ({
+  // Get team from store to access players
+  const storeTeam = editionsStore.teams.find(t => t.teamId === props.match.awayTeamId);
+  if (!storeTeam) return [];
+  return (storeTeam.players || []).map((p: any) => ({
     playerId: p.playerId,
     playerDisplayName: `${p.firstName} ${p.lastName}`,
   }));
@@ -217,12 +229,12 @@ const totalGoals = computed(() =>
 // Colors
 const getHomeTeamColor = computed(() => {
   const color = homeTeam.value?.color || '';
-  return colorMap[color] || '#000';
+  return colorMap[color] || '#ffffff';
 });
 
 const getAwayTeamColor = computed(() => {
-  const color = awayTeam.value?.color || '';
-  return colorMap[color] || '#000';
+  const color = awayTeam.value?.color || "";
+  return colorMap[color] || '#ffffff';
 });
 
 const matchTypeLabel = computed(() => {
@@ -310,13 +322,12 @@ const toggleMatchPlayed = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px;
 }
 
 .team-side {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 31%;
   flex: 1;
 }
 
@@ -342,7 +353,6 @@ const toggleMatchPlayed = () => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .score-section {
@@ -387,9 +397,9 @@ const toggleMatchPlayed = () => {
 }
 
 .goal-item {
-  display: flex;
+  display: inline-block;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
   font-size: 0.875rem;
   color: #555;
 }

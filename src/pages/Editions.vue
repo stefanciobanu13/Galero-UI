@@ -13,15 +13,16 @@
             <v-col cols="12" md="6">
               <h2>{{ t('pages.editions.title') }}</h2>
             </v-col>
-            <v-col cols="12" md="6">
+            <v-col cols="12" md="2">
               <v-row class="gap-2">
-                <v-col cols="12">
+                <v-col cols="8">
                   <v-btn
                     v-if="authStore.isAdmin"
                     @click="startCreatingNew"
                     color="primary"
                     block
                     prepend-icon="mdi-plus"
+                    class="grid place-items-center"
                   >
                     {{ t('pages.editions.newEdition') }}
                   </v-btn>
@@ -39,31 +40,22 @@
                     {{ formatDate(edition.date) }}
                   </p>
                   <v-row class="gap-2">
-                    <v-col cols="6">
+                    <v-col cols="4">
                       <v-btn
-                        v-if="authStore.isAdmin"
                         color="info"
-                        size="small"
+                        size="x-small"
                         block
                         @click="selectEdition(edition)"
                       >
-                        View & Edit
-                      </v-btn>
-                      <v-btn
-                        v-else
-                        color="info"
-                        size="small"
-                        block
-                        @click="selectEdition(edition)"
-                      >
-                        View Only
+                        View
                       </v-btn>
                     </v-col>
-                    <v-col cols="6">
+                    <v-col cols="4">
                       <v-btn
                         v-if="authStore.isAdmin"
                         class="deleteBtn"
                         color="error"
+                        size="x-small"
                         rounded
                         block
                         @click="confirmDeleteEdition(edition)"
@@ -92,7 +84,7 @@
     <v-row class="mb-4" v-if="selectedEditionForView || isCreatingNew">
       <v-col cols="12">
         <v-btn @click="goBack" variant="outlined" prepend-icon="mdi-arrow-left">
-          Back to Editions
+          Back
         </v-btn>
       </v-col>
     </v-row>
@@ -160,27 +152,33 @@
 
     <!-- Main Content (Teams, Matches, Standings) - Show for both new and existing editions -->
     <template v-if="teams.length > 0">
-      <!-- Team Setup Section -->
-      <v-row class="mb-6">
+
+
+      <!-- Team View Section (Only for EXISTING editions - read-only) -->
+      <v-row v-if="!isCreatingNew && selectedEditionForView" class="mb-6">
         <v-col id="first2Teams" cols="12">
           <v-card>
+            <v-card-title>Teams</v-card-title>
             <v-card-text>
               <v-row>
                 <v-col cols="6" v-for="team in teams" :key="team.teamId">
-                  <v-card :style="{ borderLeft: `4px solid ${getColorValue(team.color)}` }" class="pa-4">
-                    <h3 class="text-capitalize mb-2">{{ team.color }} Team</h3>
-                    <v-divider class="mb-3" />
-                    <div v-if="team.players.length > 0" class="d-flex flex-column gap-2">
-                      <v-chip
-                        v-for="player in team.players"
-                        :key="player.playerId"
-                        size="small"
-                        class="w-100"
-                      >
-                        {{ player.firstName }} {{ player.lastName }}
-                      </v-chip>
+                  <v-card :style="{ backgroundColor: `${getColorValue(team.color)}` }" class="pa-1">
+                    <h3 class="text-capitalize mb-1 text-center">{{ team.color }}</h3>
+                    <v-divider class="mb-1" />
+                    
+                    <div class="d-flex flex-column gap-1">
+                      <v-list density="compact" :style="{ backgroundColor: `${getColorValue(team.color)}` }">
+                        <v-list-item
+                          v-for="(player, index) in team.players"
+                          :key="index"
+                          v-show="player.playerId"
+                        >
+                          <v-list-item-title class= "text-xs" >
+                            {{ player.firstName }} {{ player.lastName }}
+                          </v-list-item-title>
+                        </v-list-item>
+                      </v-list>
                     </div>
-                    <p v-else class="text-caption text-gray-500">No players assigned yet</p>
                   </v-card>
                 </v-col>
               </v-row>
@@ -190,7 +188,7 @@
       </v-row>
 
       <!-- Standings Section -->
-      <v-row class="mb-6" v-if="editionsStore.standings.length > 0">
+      <v-row class="mb-1" v-if="editionsStore.standings.length > 0">
         <v-col cols="12">
           <v-card>
             <v-card-title>Standings</v-card-title>
@@ -198,19 +196,19 @@
               <v-table>
                 <thead>
                   <tr>
-                    <th class="text-left">Position</th>
+                    <th class="px-2 text-left">Place</th>
                     <th class="text-left">Team</th>
-                    <th class="text-center">Points</th>
-                    <th class="text-center">For</th>
-                    <th class="text-center">Against</th>
-                    <th class="text-center">Diff</th>
+                    <th class="px-2 text-center">Points</th>
+                    <th class="px-2 text-center">GD</th>
+                    <th class="px-2 text-center">GP</th>
+                    <th class="px-2 text-center">+/-</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr
                     v-for="(standing, index) in editionsStore.standings"
                     :key="standing.teamId"
-                    :style="{ backgroundColor: getColorValue(standing.color) + '20' }"
+                    :style="{backgroundColor: getColorValue(standing.color)}"
                   >
                     <td class="font-weight-bold">{{ index + 1 }}</td>
                     <td>
@@ -247,7 +245,7 @@
                     </div>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
-                    <MatchCard :match="match" @goal-added="onGoalAdded" />
+                    <MatchCard :match="match" :can-edit="isCreatingNew" @goal-added="onGoalAdded" />
                   </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -265,7 +263,7 @@
                     </div>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
-                    <MatchCard :match="match" @goal-added="onGoalAdded" />
+                    <MatchCard :match="match" :can-edit="isCreatingNew" @goal-added="onGoalAdded" />
                   </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -311,7 +309,7 @@
             block
             :loading="isCreatingNew && editionsStore.loading"
           >
-            Save Edition (All Teams, Matches & Goals)
+            Save Edition
           </v-btn>
         </v-col>
       </v-row>
@@ -355,7 +353,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/auth';
 import { useEditionsStore } from '../stores/editions';
-import { editionService, teamService, matchService, teamPlayerService, playerService, goalService } from '../services/api';
+import { editionService, teamService, matchService, goalService } from '../services/api';
 import MatchCard from '../components/MatchCard.vue';
 import type { Edition } from '../types';
 
@@ -420,14 +418,14 @@ const topScorers = computed(() => {
 });
 
 const colorMap: Record<string, string> = {
-  green: '#4CAF50',
-  orange: '#FF9800',
-  gray: '#9E9E9E',
-  blue: '#2196F3',
+  verde: '#9cff7a',
+  portocaliu: '#fcb142',
+  gri: '#e3e1e1',
+  albastru: '#80d2ff',
 };
 
 const getColorValue = (color: string): string => {
-  return colorMap[color] || '#000';
+  return colorMap[color] || '#FFFFFF';
 };
 
 const formatDate = (dateString: string): string => {
@@ -489,7 +487,7 @@ const initializeEdition = async () => {
   try {
     isInitializing.value = true;
 
-    // Step 2: Create the 4 teams locally in store
+    // Step 1: Create the 4 teams locally in store (WITHOUT players)
     const teamColors: Array<'green' | 'orange' | 'gray' | 'blue'> = ['green', 'orange', 'gray', 'blue'];
     const teamIds: Record<string, number> = {};
     let teamIdCounter = 1;
@@ -506,32 +504,7 @@ const initializeEdition = async () => {
       teamIdCounter++;
     }
 
-    // Step 3: Assign players from attendance to teams
-    try {
-      const allPlayers = await playerService.getAll();
-      const editionPlayers = allPlayers.data;
-
-      // Distribute players to teams - 6 players per team
-      const playersPerTeam = 6;
-      let playerIndex = 0;
-
-      for (const color of teamColors) {
-        const teamIdx = editionsStore.teams.findIndex(t => t.color === color);
-        if (teamIdx >= 0) {
-          for (let i = 0; i < playersPerTeam && playerIndex < editionPlayers.length; i++) {
-            editionsStore.teams[teamIdx].players.push(editionPlayers[playerIndex]);
-            playerIndex++;
-          }
-        }
-      }
-
-      // Also populate the editionsStore.players with all players used in this edition
-      editionsStore.players = editionPlayers.slice(0, playersPerTeam * teamColors.length);
-    } catch (e) {
-      console.warn('Could not fetch players:', e);
-    }
-
-    // Step 4: Create all matches locally
+    // Step 2: Create all matches locally
     const MATCH_ORDER = [
       { homeColor: 'green', awayColor: 'orange', number: 1, type: 'group' },
       { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'group' },
@@ -635,15 +608,7 @@ const saveEdition = async () => {
       teamIdMap[team.teamId!] = teamResponse.data.teamId!;
     }
 
-    // Step 3: Assign players to teams
-    for (const team of editionsStore.teams) {
-      const newTeamId = teamIdMap[team.teamId!];
-      for (const player of team.players) {
-        await teamPlayerService.addPlayerToTeam(newTeamId, player.playerId!);
-      }
-    }
-
-    // Step 4: Create matches in backend
+    // Step 3: Create matches in backend
     const matchIdMap: Record<number, number> = {};
     for (const match of editionsStore.matches) {
       const matchData = {
@@ -659,7 +624,7 @@ const saveEdition = async () => {
       matchIdMap[match.matchId!] = matchResponse.data.matchId!;
     }
 
-    // Step 5: Create goals in backend
+    // Step 4: Create goals in backend
     for (const goal of editionsStore.goals) {
       const goalData = {
         matchId: matchIdMap[goal.matchId],
@@ -760,8 +725,7 @@ onMounted(async () => {
 
 deleteBtn{
 min-width: 5%!important;
-width: 1px!important;
-height: 2px!important;
+height: 1px!important;
 }
 
 h1 {
@@ -794,6 +758,8 @@ h3 {
 
 .edition-card {
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 16px;
 }
 
 .edition-card:hover {

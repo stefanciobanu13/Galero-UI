@@ -90,6 +90,10 @@ export const attendanceService = {
     return api.get(`/attendance/edition/${date}`);
   },
 
+  getAttendanceByEdition: (editionId: number) => {
+    return api.get(`/attendance/edition/${editionId}`);
+  },
+
   getAttendanceById: (attendanceId: number) => {
     return api.get(`/attendance/${attendanceId}`);
   },
