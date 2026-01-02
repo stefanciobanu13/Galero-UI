@@ -42,21 +42,31 @@ export const playerService = {
     api.get<Player>("/players/name", {
       params: { firstName, lastName },
     }),
-  getEditionHistory: (playerId: number, limit: number = 5) =>
-    api.get<
-      Array<{
-        editionId: number;
-        editionNumber: number;
-        date: string;
-        placement: number;
-        finalType: "big_final" | "small_final" | null;
-        opponentColor: string;
-        playerTeamScore: number;
-        opponentScore: number;
-      }>
-    >(`/players/${playerId}/history`, {
-      params: { limit },
+  getEditionHistory: (playerId: number, limit: number) =>
+    api.get<Array<{
+      editionId: number;
+      editionNumber: number;
+      date: string;
+      placement: number;
+      finalType: 'big_final' | 'small_final' | null;
+      opponentColor: string;
+      playerTeamScore: number;
+      opponentScore: number;
+    }>>(`/players/${playerId}/history`, {
+      params: { limit }
     }),
+  getPlacementStats: (playerId: number) =>
+    api.get<{
+      playerId: number;
+      firstName: string;
+      lastName: string;
+      grade: number;
+      firstPlaceCount: number;
+      secondPlaceCount: number;
+      thirdPlaceCount: number;
+      fourthPlaceCount: number;
+      editionsPlayedCount: number;
+    }>(`/players/${playerId}/placement-stats`),
 };
 
 export const authService = {
