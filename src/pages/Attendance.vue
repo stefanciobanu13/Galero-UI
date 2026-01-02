@@ -17,13 +17,27 @@
 
         <!-- Tabs for New Attendance / Past Attendances -->
         <v-tabs v-model="activeTab" class="mb-6">
-          <v-tab value="new">Add New Attendance</v-tab>
+          <v-tab value="new">{{ isEditingMode ? 'Edit Attendance' : 'Add New Attendance' }}</v-tab>
           <v-tab value="past">Past Attendances</v-tab>
         </v-tabs>
 
         <!-- Add New Attendance Tab -->
         <v-window v-model="activeTab">
           <v-window-item value="new">
+            <!-- Editing Mode Notice -->
+            <v-alert v-if="isEditingMode" type="info" variant="tonal" class="mb-6">
+              <v-icon class="mr-2">mdi-pencil</v-icon>
+              You are editing an existing attendance record. Make your changes and proceed to team creation.
+              <v-btn 
+                size="small" 
+                variant="text" 
+                color="info"
+                @click="cancelEditMode"
+                class="ml-2"
+              >
+                Cancel Edit
+              </v-btn>
+            </v-alert>
             <!-- Edition Information -->
             <v-card elevation="2" class="mb-6">
               <v-card-title class="text-h6">
@@ -139,7 +153,7 @@
                         :items="['inscris', 'retras', 'rezerva']"
                         density="compact"
                         variant="outlined"
-                        @update:model-value="onStatusChange(player)"
+                        @update:model-value="updatePlayerStatus(player)"
                         hide-details
                       />
                     </td>
@@ -157,16 +171,7 @@
                 </tbody>
               </v-table>
 
-              <v-card-actions v-if="attendancePlayers.length > 0">
-                <v-spacer />
-                <v-btn
-                  color="primary"
-                  @click="proceedToTeamCreation"
-                  :loading="isCreatingEdition"
-                >
-                  Proceed to Team Creation
-                </v-btn>
-              </v-card-actions>
+
             </v-card>
           </v-window-item>
 
@@ -222,6 +227,27 @@
                           </template>
                         </v-list-item>
                       </v-list>
+                      <v-divider class="my-4" />
+                      <v-row class="gap-2">
+                        <v-col cols="auto">
+                          <v-btn
+                            color="primary"
+                            @click.stop="editPastAttendance(pastAttendance)"
+                          >
+                            <v-icon left>mdi-pencil</v-icon>
+                            Edit Attendance
+                          </v-btn>
+                        </v-col>
+                        <v-col cols="auto">
+                          <v-btn
+                            color="info"
+                            @click.stop="copyAttendanceMessage(pastAttendance)"
+                          >
+                            <v-icon left>mdi-content-copy</v-icon>
+                            Copy Message
+                          </v-btn>
+                        </v-col>
+                      </v-row>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
                 </v-expansion-panels>
@@ -380,8 +406,12 @@ const isCreatingEdition = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 const activeTab = ref('new');
-const pastAttendances = ref<Array<{ editionId: number; editionNumber: number; date: string; attendanceRecords: Array<{ player: Player; status?: 'inscris' | 'retras' | 'rezerva' }> | null; isLoading?: boolean }>>([]);
+const pastAttendances = ref<Array<{ editionId: number; editionNumber: number; date: string; attendanceRecords: Array<{ player: Player; status?: 'inscris' | 'retras' | 'rezerva'; attendanceId?: number }> | null; isLoading?: boolean }>>([]);
 const expandedPanels = ref<number[]>([]);
+
+// Edit mode state
+const isEditingMode = ref(false);
+const editingEditionId = ref<number | null>(null);
 
 // Team creation related
 const showTeamCreationDialog = ref(false);
@@ -539,13 +569,42 @@ const addPlayerToAttendance = async () => {
   }
 };
 
-// Handle status change for a player
-const onStatusChange = (player: AttendancePlayer) => {
-  // Status is changed in the local list
-  // The updated status will be sent to the backend when proceeding to team creation
-  // or when finalizing the attendance
-  console.log(`Player ${player.firstName} ${player.lastName} status changed to ${player.status}`);
-  // You can add visual feedback here if needed
+// Update player status and persist to database
+const updatePlayerStatus = async (player: AttendancePlayer) => {
+  if (!currentEditionId.value || !player.status || !selectedEditionDate.value) return;
+
+  try {
+    // Get all attendance records for the current edition
+    const attendanceResponse = await attendanceService.getAttendanceByEdition(currentEditionId.value);
+    const attendanceRecords = attendanceResponse.data || [];
+    
+    // Find the attendance record for this player
+    const attendanceRecord = attendanceRecords.find((record: any) => record.playerId === player.playerId);
+    
+    if (attendanceRecord && attendanceRecord.attendanceId) {
+      // Update the status in the database with all required fields
+      await attendanceService.updateAttendance(
+        attendanceRecord.attendanceId,
+        {
+          playerId: player.playerId,
+          editionId: currentEditionId.value,
+          date: selectedEditionDate.value,
+          status: player.status
+        }
+      );
+      
+      successMessage.value = `${player.firstName} ${player.lastName}'s status updated to ${player.status}`;
+      setTimeout(() => {
+        successMessage.value = '';
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Failed to update player status:', error);
+    errorMessage.value = 'Failed to update player status';
+    setTimeout(() => {
+      errorMessage.value = '';
+    }, 3000);
+  }
 };
 
 // Remove player from attendance
@@ -629,7 +688,7 @@ const loadAttendanceForEdition = async (editionId: number) => {
     const attendanceResponse = await attendanceService.getAttendanceByEdition(editionId);
     const attendanceRecords = attendanceResponse.data || [];
     
-    // Get player details from the already loaded allPlayers list and include status
+    // Get player details from the already loaded allPlayers list and include status and attendanceId
     const attendanceWithPlayers = attendanceRecords
       .map((record: any) => {
         const player = allPlayers.value.find(p => p.playerId === record.playerId);
@@ -637,11 +696,12 @@ const loadAttendanceForEdition = async (editionId: number) => {
           return {
             player,
             status: record.status as 'inscris' | 'retras' | 'rezerva',
+            attendanceId: record.attendanceId as number,
           };
         }
         return null;
       })
-      .filter((item: any) => item !== null);
+      .filter((item: any): item is { player: Player; status: 'inscris' | 'retras' | 'rezerva'; attendanceId: number } => item !== null);
 
     attendanceItem.attendanceRecords = attendanceWithPlayers;
   } catch (error) {
@@ -697,6 +757,32 @@ const proceedToTeamCreation = async () => {
       }
     }
 
+    // If in edit mode, update the attendance records with new statuses
+    if (isEditingMode.value) {
+      try {
+        // Get current attendance records from the database
+        const attendanceResponse = await attendanceService.getAttendanceByEdition(editionId);
+        const dbAttendanceRecords = attendanceResponse.data || [];
+
+        // Update the status for each player that has been modified
+        for (const player of attendancePlayers.value) {
+          const dbRecord = dbAttendanceRecords.find((r: any) => r.playerId === player.playerId);
+          if (dbRecord && player.status !== dbRecord.status) {
+            const attendanceId = dbRecord.attendanceId as number;
+            // Status has been changed, update it
+            await attendanceService.updateAttendance(
+              attendanceId,
+              { status: player.status }
+            );
+          }
+        }
+        successMessage.value = 'Attendance updated successfully!';
+      } catch (error) {
+        console.error('Failed to update attendance:', error);
+        errorMessage.value = 'Failed to update some attendance records';
+      }
+    }
+
     // Reset teams for new edition
     teams.value = {
       verde: [],
@@ -710,7 +796,7 @@ const proceedToTeamCreation = async () => {
     createdEditionId.value = editionId;
     showTeamCreationDialog.value = true;
 
-    successMessage.value = 'Proceeding to team creation...';
+    successMessage.value = isEditingMode.value ? 'Attendance updated! Proceeding to team configuration...' : 'Proceeding to team creation...';
     setTimeout(() => {
       successMessage.value = '';
     }, 2000);
@@ -763,6 +849,9 @@ const cancelTeamCreation = () => {
     selectedEditionDate.value = '';
     attendancePlayers.value = [];
     selectedPlayer.value = null;
+    // Reset editing mode
+    isEditingMode.value = false;
+    editingEditionId.value = null;
     // Reset teams
     teams.value = {
       verde: [],
@@ -824,6 +913,8 @@ const saveTeams = async () => {
       selectedEditionDate.value = '';
       attendancePlayers.value = [];
       selectedPlayer.value = null;
+      isEditingMode.value = false;
+      editingEditionId.value = null;
       teams.value = {
         verde: [],
         portocaliu: [],
@@ -914,6 +1005,123 @@ const submitAttendance = async () => {
       : 'Failed to submit attendance. Please try again.';
   } finally {
     isSubmitting.value = false;
+  }
+};
+
+// Edit attendance functions
+const editPastAttendance = async (pastAttendance: any) => {
+  try {
+    // Load full attendance records if not already loaded
+    if (!pastAttendance.attendanceRecords) {
+      await loadAttendanceForEdition(pastAttendance.editionId);
+    }
+
+    // Set the edition information in the form
+    editionNumber.value = pastAttendance.editionNumber;
+    selectedEditionDate.value = pastAttendance.date;
+    currentEditionId.value = pastAttendance.editionId;
+
+    // Load the players into the attendance list
+    if (pastAttendance.attendanceRecords) {
+      attendancePlayers.value = pastAttendance.attendanceRecords.map((record: any) => ({
+        ...record.player,
+        status: record.status,
+      }));
+    }
+
+    // Set editing mode and switch tab
+    isEditingMode.value = true;
+    editingEditionId.value = pastAttendance.editionId;
+    activeTab.value = 'new';
+
+    successMessage.value = 'Loaded attendance for editing. You can now modify players and statuses.';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to load attendance for editing:', error);
+    errorMessage.value = 'Failed to load attendance data for editing';
+  }
+};
+
+const cancelEditMode = () => {
+  isEditingMode.value = false;
+  editingEditionId.value = null;
+  editionNumber.value = null;
+  selectedEditionDate.value = '';
+  currentEditionId.value = null;
+  attendancePlayers.value = [];
+  selectedPlayer.value = null;
+  activeTab.value = 'past';
+};
+
+// Format attendance data into a message and copy to clipboard
+const copyAttendanceMessage = async (pastAttendance: any) => {
+  try {
+    // Make sure attendance records are loaded
+    if (!pastAttendance.attendanceRecords) {
+      await loadAttendanceForEdition(pastAttendance.editionId);
+    }
+
+    if (!pastAttendance.attendanceRecords || pastAttendance.attendanceRecords.length === 0) {
+      errorMessage.value = 'No attendance records to copy';
+      setTimeout(() => {
+        errorMessage.value = '';
+      }, 3000);
+      return;
+    }
+
+    // Separate players by status
+    const inscrisi = pastAttendance.attendanceRecords
+      .filter((r: any) => r.status === 'inscris')
+      .map((r: any) => r.player);
+    const rezerve = pastAttendance.attendanceRecords
+      .filter((r: any) => r.status === 'rezerva')
+      .map((r: any) => r.player);
+    const retras = pastAttendance.attendanceRecords
+      .filter((r: any) => r.status === 'retras')
+      .map((r: any) => r.player);
+
+    // Build the message
+    let message = `Prezenta pentru editia ${pastAttendance.editionNumber} - Galero:`;
+
+    // Add inscris players (first 24)
+    if (inscrisi.length > 0) {
+      message += '\n';
+      inscrisi.slice(0, 24).forEach((player, index) => {
+        message += `\n${index + 1}. ${player.firstName} ${player.lastName}`;
+      });
+    }
+
+    // Add rezerva players
+    if (rezerve.length > 0) {
+      message += '\n\nRezerve:';
+      rezerve.forEach((player, index) => {
+        message += `\n${index + 1}. ${player.firstName} ${player.lastName}`;
+      });
+    }
+
+    // Add retras players
+    if (retras.length > 0) {
+      message += '\n\nList Rusinii:';
+      retras.forEach((player, index) => {
+        message += `\n${index + 1}. ${player.firstName} ${player.lastName}`;
+      });
+    }
+
+    // Copy to clipboard
+    await navigator.clipboard.writeText(message);
+
+    successMessage.value = 'Attendance message copied to clipboard!';
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (error) {
+    console.error('Failed to copy attendance message:', error);
+    errorMessage.value = 'Failed to copy message to clipboard';
+    setTimeout(() => {
+      errorMessage.value = '';
+    }, 3000);
   }
 };
 

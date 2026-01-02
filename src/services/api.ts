@@ -12,7 +12,7 @@ import type {
 
 const API_BASE_URL =
   window.location.hostname === "localhost"
-    ? "http://localhost:4444/api/v1"
+    ? "http://localhost:8080/api/v1"
     : "/api/v1"; // Aceasta va deveni https://galero.cezarovici.dev/api/v1
 
 const api: AxiosInstance = axios.create({

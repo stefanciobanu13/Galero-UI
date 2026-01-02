@@ -89,6 +89,13 @@
       </v-col>
     </v-row>
 
+    <!-- Edition Number Display -->
+    <v-row class="mb-6" v-if="selectedEditionForView || isCreatingNew">
+      <v-col cols="12" class="text-center">
+        <h2>Edition {{ selectedEditionForView?.editionNumber ?? editionForm.editionNumber }}</h2>
+      </v-col>
+    </v-row>
+
     <!-- Create New Edition Section -->
     <template v-if="isCreatingNew">
       <v-row class="mb-6">
@@ -153,7 +160,6 @@
 
 
     <!-- Main Content (Teams, Matches, Standings) - Show for both new and existing editions -->
-    <h2>{{ selectedEditionForView?.editionNumber }}</h2>
     <template v-if="teams.length > 0">
 
       <!-- Team View Section (Only for EXISTING editions - read-only) -->

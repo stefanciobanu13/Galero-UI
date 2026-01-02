@@ -30,7 +30,7 @@
                   <div class="winner-info">
                     <div class="rank-number">2</div>
                     <div class="player-name">{{ topWinners[1].firstName }} {{ topWinners[1].lastName }}</div>
-                    <div class="wins-count">{{ topWinners[1].editionWinsCount }} {{ topWinners[1].editionWinsCount === 1 ? 'Win' : 'Wins' }}</div>
+                    <div class="wins-count">{{ topWinners[1].editionWinsCount }} {{ topWinners[1].editionWinsCount === 1 ? 'Win' : 'Wins' }} {{ 'of ' + topWinners[1]?.editionsPlayedCount }}</div>
                   </div>
                 </div>
 
@@ -40,7 +40,7 @@
                   <div class="winner-info">
                     <div class="rank-number">1</div>
                     <div class="player-name">{{ topWinners[0].firstName }} {{ topWinners[0].lastName }}</div>
-                    <div class="wins-count">{{ topWinners[0].editionWinsCount }} {{ topWinners[0].editionWinsCount === 1 ? 'Win' : 'Wins' }}</div>
+                    <div class="wins-count">{{ topWinners[0].editionWinsCount }} {{ topWinners[0].editionWinsCount === 1 ? 'Win' : 'Wins' }} {{ 'of ' + topWinners[0]?.editionsPlayedCount }} </div>
                   </div>
                 </div>
 
@@ -50,7 +50,7 @@
                   <div class="winner-info">
                     <div class="rank-number">3</div>
                     <div class="player-name">{{ topWinners[2].firstName }} {{ topWinners[2].lastName }}</div>
-                    <div class="wins-count">{{ topWinners[2].editionWinsCount }} {{ topWinners[2].editionWinsCount === 1 ? 'Win' : 'Wins' }}</div>
+                    <div class="wins-count">{{ topWinners[2].editionWinsCount }} {{ topWinners[2].editionWinsCount === 1 ? 'Win' : 'Wins' }} {{ 'of ' + topWinners[2]?.editionsPlayedCount }}</div>
                   </div>
                 </div>
               </div>
