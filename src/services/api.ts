@@ -1,19 +1,31 @@
-import axios from 'axios';
-import type { AxiosInstance } from 'axios';
-import type { Player, Edition, Team, Match, Goal, Attendance, TeamPlayer } from '../types';
+import axios from "axios";
+import type { AxiosInstance } from "axios";
+import type {
+  Player,
+  Edition,
+  Team,
+  Match,
+  Goal,
+  Attendance,
+  TeamPlayer,
+} from "../types";
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+// Detectează automat dacă ești pe localhost (dev) sau pe Pi (prod)
+const API_BASE_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:4444/api/v1" // Pentru când testezi de pe PC
+    : "/api/v1"; // Pentru când rulează pe Raspberry Pi
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Add token to requests if it exists
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem("authToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,27 +33,30 @@ api.interceptors.request.use((config) => {
 });
 
 export const playerService = {
-  getAll: () => api.get<Player[]>('/players'),
+  getAll: () => api.get<Player[]>("/players"),
   getById: (id: number) => api.get<Player>(`/players/${id}`),
-  create: (player: Player) => api.post<Player>('/players', player),
-  update: (id: number, player: Player) => api.put<Player>(`/players/${id}`, player),
+  create: (player: Player) => api.post<Player>("/players", player),
+  update: (id: number, player: Player) =>
+    api.put<Player>(`/players/${id}`, player),
   delete: (id: number) => api.delete(`/players/${id}`),
-  searchByName: (firstName: string, lastName: string) => 
-    api.get<Player>('/players/name', {
-      params: { firstName, lastName }
+  searchByName: (firstName: string, lastName: string) =>
+    api.get<Player>("/players/name", {
+      params: { firstName, lastName },
     }),
   getEditionHistory: (playerId: number, limit: number = 5) =>
-    api.get<Array<{
-      editionId: number;
-      editionNumber: number;
-      date: string;
-      placement: number;
-      finalType: 'big_final' | 'small_final' | null;
-      opponentColor: string;
-      playerTeamScore: number;
-      opponentScore: number;
-    }>>(`/players/${playerId}/history`, {
-      params: { limit }
+    api.get<
+      Array<{
+        editionId: number;
+        editionNumber: number;
+        date: string;
+        placement: number;
+        finalType: "big_final" | "small_final" | null;
+        opponentColor: string;
+        playerTeamScore: number;
+        opponentScore: number;
+      }>
+    >(`/players/${playerId}/history`, {
+      params: { limit },
     }),
 };
 
@@ -49,8 +64,11 @@ export const authService = {
   loginWithGoogle: (credential: string) => {
     // Send the Google credential JWT to the backend for validation
     // Backend will decode the credential and return user profile with all fields
-    return api.post('/users/google/login', { credential }).catch(error => {
-      console.error('Login error response:', error.response?.data || error.message);
+    return api.post("/users/google/login", { credential }).catch((error) => {
+      console.error(
+        "Login error response:",
+        error.response?.data || error.message
+      );
       throw error;
     });
   },
@@ -66,23 +84,23 @@ export const authService = {
   unassignPlayerFromUser: (userId: number) => {
     return api.post(`/users/${userId}/unassign-player`);
   },
-  
+
   logout: () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userRole");
   },
 
   setAdminRole: () => {
-    localStorage.setItem('userRole', 'admin');
+    localStorage.setItem("userRole", "admin");
   },
 
   isAdmin: () => {
-    return localStorage.getItem('userRole') === 'admin';
+    return localStorage.getItem("userRole") === "admin";
   },
 
   isLoggedIn: () => {
-    return !!localStorage.getItem('authToken');
-  }
+    return !!localStorage.getItem("authToken");
+  },
 };
 
 export const attendanceService = {
@@ -99,7 +117,7 @@ export const attendanceService = {
   },
 
   submitAttendance: (attendanceData: any) => {
-    return api.post('/attendance', attendanceData);
+    return api.post("/attendance", attendanceData);
   },
 
   updateAttendance: (attendanceId: number, attendanceData: any) => {
@@ -111,7 +129,7 @@ export const attendanceService = {
   },
 
   getAllAttendances: () => {
-    return api.get('/attendance');
+    return api.get("/attendance");
   },
 
   getAttendanceByEdition: (editionId: number) => {
@@ -120,79 +138,95 @@ export const attendanceService = {
 };
 
 export const editionService = {
-  getAll: () => api.get<Edition[]>('/editions'),
+  getAll: () => api.get<Edition[]>("/editions"),
   getById: (id: number) => api.get<Edition>(`/editions/${id}`),
   getFull: (id: number) => api.get<any>(`/editions/${id}/full`),
-  create: (edition: Edition) => api.post<Edition>('/editions', edition),
-  update: (id: number, edition: Edition) => api.put<Edition>(`/editions/${id}`, edition),
+  create: (edition: Edition) => api.post<Edition>("/editions", edition),
+  update: (id: number, edition: Edition) =>
+    api.put<Edition>(`/editions/${id}`, edition),
   delete: (id: number) => api.delete(`/editions/${id}`),
-  getByNumber: (number: number) => api.get<Edition>(`/editions/number/${number}`),
+  getByNumber: (number: number) =>
+    api.get<Edition>(`/editions/number/${number}`),
 };
 
 export const teamService = {
-  getAll: () => api.get<Team[]>('/teams'),
+  getAll: () => api.get<Team[]>("/teams"),
   getById: (id: number) => api.get<Team>(`/teams/${id}`),
-  create: (team: Team) => api.post<Team>('/teams', team),
+  create: (team: Team) => api.post<Team>("/teams", team),
   update: (id: number, team: Team) => api.put<Team>(`/teams/${id}`, team),
   delete: (id: number) => api.delete(`/teams/${id}`),
-  getByEdition: (editionId: number) => api.get<Team[]>(`/teams/edition/${editionId}`),
+  getByEdition: (editionId: number) =>
+    api.get<Team[]>(`/teams/edition/${editionId}`),
 };
 
 export const teamPlayerService = {
-  getAll: () => api.get<TeamPlayer[]>('/team-players'),
-  addPlayerToTeam: (teamId: number, playerId: number) => 
-    api.post<TeamPlayer>('/team-players', { teamId, playerId }),
-  getPlayersByTeam: (teamId: number) => 
+  getAll: () => api.get<TeamPlayer[]>("/team-players"),
+  addPlayerToTeam: (teamId: number, playerId: number) =>
+    api.post<TeamPlayer>("/team-players", { teamId, playerId }),
+  getPlayersByTeam: (teamId: number) =>
     api.get<TeamPlayer[]>(`/team-players/team/${teamId}`),
-  removePlayerFromTeam: (teamId: number, playerId: number) => 
+  removePlayerFromTeam: (teamId: number, playerId: number) =>
     api.delete(`/team-players/${teamId}/${playerId}`),
 };
 
 export const matchService = {
-  getAll: () => api.get<Match[]>('/matches'),
+  getAll: () => api.get<Match[]>("/matches"),
   getById: (id: number) => api.get<Match>(`/matches/${id}`),
-  create: (match: Match) => api.post<Match>('/matches', match),
+  create: (match: Match) => api.post<Match>("/matches", match),
   update: (id: number, match: Match) => api.put<Match>(`/matches/${id}`, match),
   delete: (id: number) => api.delete(`/matches/${id}`),
-  getByEdition: (editionId: number) => api.get<Match[]>(`/matches/edition/${editionId}`),
+  getByEdition: (editionId: number) =>
+    api.get<Match[]>(`/matches/edition/${editionId}`),
   getByTeam: (teamId: number) => api.get<Match[]>(`/matches/team/${teamId}`),
-  getByType: (matchType: string) => api.get<Match[]>(`/matches/type/${matchType}`),
+  getByType: (matchType: string) =>
+    api.get<Match[]>(`/matches/type/${matchType}`),
 };
 
 export const goalService = {
-  getAll: () => api.get<Goal[]>('/goals'),
+  getAll: () => api.get<Goal[]>("/goals"),
   getById: (id: number) => api.get<Goal>(`/goals/${id}`),
-  create: (goal: Goal) => api.post<Goal>('/goals', goal),
+  create: (goal: Goal) => api.post<Goal>("/goals", goal),
   update: (id: number, goal: Goal) => api.put<Goal>(`/goals/${id}`, goal),
   delete: (id: number) => api.delete(`/goals/${id}`),
   getByMatch: (matchId: number) => api.get<Goal[]>(`/goals/match/${matchId}`),
   getByTeam: (teamId: number) => api.get<Goal[]>(`/goals/team/${teamId}`),
-  getByPlayer: (playerId: number) => api.get<Goal[]>(`/goals/player/${playerId}`),
+  getByPlayer: (playerId: number) =>
+    api.get<Goal[]>(`/goals/player/${playerId}`),
   getByType: (goalType: string) => api.get<Goal[]>(`/goals/type/${goalType}`),
-  getPlayerGoalCount: (playerId: number) => api.get<{ playerId: number; firstName: string; lastName: string; goalCount: number }>(`/goals/player/${playerId}/count`),
+  getPlayerGoalCount: (playerId: number) =>
+    api.get<{
+      playerId: number;
+      firstName: string;
+      lastName: string;
+      goalCount: number;
+    }>(`/goals/player/${playerId}/count`),
 };
 
 export const championsService = {
-  getTopEditionWinners: (limit: number = 10) => 
-    api.get<Array<{
-      playerId: number;
-      firstName: string;
-      lastName: string;
-      grade: number;
-      editionWinsCount: number;
-      editionsPlayedCount: number;
-    }>>('/champions/edition-winners', {
-      params: { limit }
+  getTopEditionWinners: (limit: number = 10) =>
+    api.get<
+      Array<{
+        playerId: number;
+        firstName: string;
+        lastName: string;
+        grade: number;
+        editionWinsCount: number;
+        editionsPlayedCount: number;
+      }>
+    >("/champions/edition-winners", {
+      params: { limit },
     }),
-  
-  getAllTimeTopScorers: (limit: number = 10) => 
-    api.get<Array<{
-      playerId: number;
-      firstName: string;
-      lastName: string;
-      totalGoals: number;
-    }>>('/champions/all-time-scorers', {
-      params: { limit }
+
+  getAllTimeTopScorers: (limit: number = 10) =>
+    api.get<
+      Array<{
+        playerId: number;
+        firstName: string;
+        lastName: string;
+        totalGoals: number;
+      }>
+    >("/champions/all-time-scorers", {
+      params: { limit },
     }),
 };
 

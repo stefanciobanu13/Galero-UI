@@ -150,9 +150,11 @@
       </v-row>
     </template>
 
-    <!-- Main Content (Teams, Matches, Standings) - Show for both new and existing editions -->
-    <template v-if="teams.length > 0">
 
+
+    <!-- Main Content (Teams, Matches, Standings) - Show for both new and existing editions -->
+    <h2>{{ selectedEditionForView?.editionNumber }}</h2>
+    <template v-if="teams.length > 0">
 
       <!-- Team View Section (Only for EXISTING editions - read-only) -->
       <v-row v-if="!isCreatingNew && selectedEditionForView" class="mb-6">
