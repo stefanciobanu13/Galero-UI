@@ -19,7 +19,7 @@ const vuetify = createVuetify({
     themes: {
       light: {
         colors: {
-          primary: "#1976d2",
+          primary: "#31b309ff",
           secondary: "#424242",
           accent: "#82b1ff",
           error: "#ff5252",
