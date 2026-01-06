@@ -1,5 +1,5 @@
 <template>
-  <div class="language-switcher">
+  <div>
     <v-menu offset="0" location="bottom end">
       <template #activator="{ props }">
         <v-btn
@@ -7,17 +7,19 @@
           v-bind="props"
           variant="text"
           :title="t('common.language')"
+          class="rounded-full"
         >
           <v-icon>mdi-translate</v-icon>
         </v-btn>
       </template>
 
-      <v-list>
+      <v-list class="rounded-lg">
         <v-list-item
           v-for="lang in languages"
           :key="lang.code"
           :active="currentLanguage === lang.code"
           @click="changeLanguage(lang.code)"
+          class="rounded-md"
         >
           <v-list-item-title>{{ lang.name }}</v-list-item-title>
         </v-list-item>
@@ -45,8 +47,4 @@ const changeLanguage = (lang: 'en' | 'ro') => {
 };
 </script>
 
-<style scoped>
-.language-switcher {
-  display: inline-block;
-}
-</style>
+

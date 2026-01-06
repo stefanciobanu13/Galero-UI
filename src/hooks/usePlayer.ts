@@ -1,9 +1,9 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import type { Player } from '../types';
-import { playerService } from '../services/api';
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import { playerService } from "../services/playerService";
+import type { Player } from "../types";
 
-export const usePlayerStore = defineStore('player', () => {
+export const usePlayerStore = defineStore("player", () => {
   const players = ref<Player[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -15,7 +15,7 @@ export const usePlayerStore = defineStore('player', () => {
       const response = await playerService.getAll();
       players.value = response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch players';
+      error.value = err.response?.data?.message || "Failed to fetch players";
     } finally {
       loading.value = false;
     }
@@ -29,7 +29,7 @@ export const usePlayerStore = defineStore('player', () => {
       players.value.push(response.data);
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to create player';
+      error.value = err.response?.data?.message || "Failed to create player";
       throw error.value;
     } finally {
       loading.value = false;
@@ -41,13 +41,13 @@ export const usePlayerStore = defineStore('player', () => {
     error.value = null;
     try {
       const response = await playerService.update(id, player);
-      const index = players.value.findIndex(p => p.playerId === id);
+      const index = players.value.findIndex((p) => p.playerId === id);
       if (index !== -1) {
         players.value[index] = response.data;
       }
       return response.data;
     } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to update player';
+      error.value = err.response?.data?.message || "Failed to update player";
       throw error.value;
     } finally {
       loading.value = false;
@@ -59,9 +59,9 @@ export const usePlayerStore = defineStore('player', () => {
     error.value = null;
     try {
       await playerService.delete(id);
-      players.value = players.value.filter(p => p.playerId !== id);
+      players.value = players.value.filter((p) => p.playerId !== id);
     } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to delete player';
+      error.value = err.response?.data?.message || "Failed to delete player";
       throw error.value;
     } finally {
       loading.value = false;
@@ -79,7 +79,7 @@ export const usePlayerStore = defineStore('player', () => {
         players.value = [response.data];
       }
     } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to search players';
+      error.value = err.response?.data?.message || "Failed to search players";
     } finally {
       loading.value = false;
     }

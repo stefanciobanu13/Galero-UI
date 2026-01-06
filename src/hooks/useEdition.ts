@@ -1,7 +1,10 @@
-import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
-import type { Edition, Team, Match, Goal, Player } from '../types';
-import { editionService, matchService, goalService } from '../services/api';
+import { defineStore } from "pinia";
+import { ref, computed, watch } from "vue";
+import { editionService, type Edition } from "../services/editionService";
+import { goalService, type Goal } from "../services/goalService";
+import { matchService, type Match } from "../services/matchService";
+import type { Team } from "../services/teamService";
+import type { Player } from "./usePlayer";
 
 interface TeamWithPlayers extends Team {
   players: Player[];
@@ -13,7 +16,7 @@ interface MatchData extends Match {
   goals: Goal[];
 }
 
-export const useEditionsStore = defineStore('editions', () => {
+export const useEditionsStore = defineStore("editions", () => {
   const currentEdition = ref<Edition | null>(null);
   const teams = ref<TeamWithPlayers[]>([]);
   const matches = ref<MatchData[]>([]);
@@ -24,43 +27,117 @@ export const useEditionsStore = defineStore('editions', () => {
   const isCreatingNewEdition = ref(false);
 
   // Local storage persistence key
-  const STORAGE_KEY = 'galero_editions_state';
+  const STORAGE_KEY = "galero_editions_state";
   let autoSaveSetup = false;
 
   const MATCH_ORDER = [
-    { homeColor: 'green', awayColor: 'orange', number: 1, type: 'group' as const },
-    { homeColor: 'blue', awayColor: 'gray', number: 2, type: 'group' as const },
-    { homeColor: 'orange', awayColor: 'blue', number: 3, type: 'group' as const },
-    { homeColor: 'gray', awayColor: 'green', number: 4, type: 'group' as const },
-    { homeColor: 'green', awayColor: 'blue', number: 5, type: 'group' as const },
-    { homeColor: 'orange', awayColor: 'gray', number: 6, type: 'group' as const },
-    { homeColor: 'blue', awayColor: 'green', number: 7, type: 'group' as const },
-    { homeColor: 'gray', awayColor: 'orange', number: 8, type: 'group' as const },
-    { homeColor: 'green', awayColor: 'gray', number: 9, type: 'group' as const },
-    { homeColor: 'blue', awayColor: 'orange', number: 10, type: 'group' as const },
-    { homeColor: 'orange', awayColor: 'green', number: 11, type: 'group' as const },
-    { homeColor: 'gray', awayColor: 'blue', number: 12, type: 'group' as const },
-    { homeColor: 'placeholder', awayColor: 'placeholder', number: 13, type: 'small_final' as const }, // Small final - determined by standings
-    { homeColor: 'placeholder', awayColor: 'placeholder', number: 14, type: 'big_final' as const }, // Big final - determined by standings
+    {
+      homeColor: "green",
+      awayColor: "orange",
+      number: 1,
+      type: "group" as const,
+    },
+    { homeColor: "blue", awayColor: "gray", number: 2, type: "group" as const },
+    {
+      homeColor: "orange",
+      awayColor: "blue",
+      number: 3,
+      type: "group" as const,
+    },
+    {
+      homeColor: "gray",
+      awayColor: "green",
+      number: 4,
+      type: "group" as const,
+    },
+    {
+      homeColor: "green",
+      awayColor: "blue",
+      number: 5,
+      type: "group" as const,
+    },
+    {
+      homeColor: "orange",
+      awayColor: "gray",
+      number: 6,
+      type: "group" as const,
+    },
+    {
+      homeColor: "blue",
+      awayColor: "green",
+      number: 7,
+      type: "group" as const,
+    },
+    {
+      homeColor: "gray",
+      awayColor: "orange",
+      number: 8,
+      type: "group" as const,
+    },
+    {
+      homeColor: "green",
+      awayColor: "gray",
+      number: 9,
+      type: "group" as const,
+    },
+    {
+      homeColor: "blue",
+      awayColor: "orange",
+      number: 10,
+      type: "group" as const,
+    },
+    {
+      homeColor: "orange",
+      awayColor: "green",
+      number: 11,
+      type: "group" as const,
+    },
+    {
+      homeColor: "gray",
+      awayColor: "blue",
+      number: 12,
+      type: "group" as const,
+    },
+    {
+      homeColor: "placeholder",
+      awayColor: "placeholder",
+      number: 13,
+      type: "small_final" as const,
+    }, // Small final - determined by standings
+    {
+      homeColor: "placeholder",
+      awayColor: "placeholder",
+      number: 14,
+      type: "big_final" as const,
+    }, // Big final - determined by standings
   ];
 
   // Helper function to calculate head-to-head stats between two teams
-  const getHeadToHeadStats = (teamA: number, teamB: number, currentMatches: MatchData[]) => {
+  const getHeadToHeadStats = (
+    teamA: number,
+    teamB: number,
+    currentMatches: MatchData[]
+  ) => {
     const h2hMatches = currentMatches.filter(
-      m => (m.homeTeamId === teamA || m.awayTeamId === teamA) &&
-           (m.homeTeamId === teamB || m.awayTeamId === teamB) &&
-           m.matchType === 'group' &&
-           m.isPlayed === true
+      (m) =>
+        (m.homeTeamId === teamA || m.awayTeamId === teamA) &&
+        (m.homeTeamId === teamB || m.awayTeamId === teamB) &&
+        m.matchType === "group" &&
+        m.isPlayed === true
     );
 
     let points = 0;
     let goalsFor = 0;
     let goalsAgainst = 0;
 
-    h2hMatches.forEach(match => {
+    h2hMatches.forEach((match) => {
       const isHome = match.homeTeamId === teamA;
-      const teamScore = isHome ? (match.homeTeamScore || 0) : (match.awayTeamScore || 0);
-      const opponentScore = isHome ? (match.awayTeamScore || 0) : (match.homeTeamScore || 0);
+      const teamScore = isHome
+        ? match.homeTeamScore || 0
+        : match.awayTeamScore || 0;
+      const opponentScore = isHome
+        ? match.awayTeamScore || 0
+        : match.homeTeamScore || 0;
 
       goalsFor += teamScore;
       goalsAgainst += opponentScore;
@@ -72,7 +149,12 @@ export const useEditionsStore = defineStore('editions', () => {
       }
     });
 
-    return { points, goalsFor, goalsAgainst, goalDifference: goalsFor - goalsAgainst };
+    return {
+      points,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+    };
   };
 
   // Helper function to compare teams with full tiebreaker rules
@@ -87,8 +169,16 @@ export const useEditionsStore = defineStore('editions', () => {
     }
 
     // Rule 2: Direct matches (head-to-head)
-    const h2hA = getHeadToHeadStats(standingsA.teamId, standingsB.teamId, currentMatches);
-    const h2hB = getHeadToHeadStats(standingsB.teamId, standingsA.teamId, currentMatches);
+    const h2hA = getHeadToHeadStats(
+      standingsA.teamId,
+      standingsB.teamId,
+      currentMatches
+    );
+    const h2hB = getHeadToHeadStats(
+      standingsB.teamId,
+      standingsA.teamId,
+      currentMatches
+    );
 
     if (h2hA.points !== h2hB.points) {
       return h2hB.points - h2hA.points;
@@ -115,22 +205,27 @@ export const useEditionsStore = defineStore('editions', () => {
 
   // Computed standings - Only based on REGULAR matches for determining final placements
   const standings = computed(() => {
-    const teamStandings = teams.value.map(team => {
+    const teamStandings = teams.value.map((team) => {
       const teamMatches = matches.value.filter(
-        m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
-             m.matchType === 'group' &&
-             // Only count matches that are marked as played
-             m.isPlayed === true
+        (m) =>
+          (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) &&
+          m.matchType === "group" &&
+          // Only count matches that are marked as played
+          m.isPlayed === true
       );
 
       let points = 0;
       let goalsFor = 0;
       let goalsAgainst = 0;
 
-      teamMatches.forEach(match => {
+      teamMatches.forEach((match) => {
         const isHome = match.homeTeamId === team.teamId;
-        const teamScore = isHome ? (match.homeTeamScore || 0) : (match.awayTeamScore || 0);
-        const opponentScore = isHome ? (match.awayTeamScore || 0) : (match.homeTeamScore || 0);
+        const teamScore = isHome
+          ? match.homeTeamScore || 0
+          : match.awayTeamScore || 0;
+        const opponentScore = isHome
+          ? match.awayTeamScore || 0
+          : match.homeTeamScore || 0;
 
         goalsFor += teamScore;
         goalsAgainst += opponentScore;
@@ -154,26 +249,33 @@ export const useEditionsStore = defineStore('editions', () => {
     });
 
     // Sort with comprehensive tiebreaker rules
-    return teamStandings.sort((a, b) => compareTeamsWithTiebreakers(a, b, matches.value));
+    return teamStandings.sort((a, b) =>
+      compareTeamsWithTiebreakers(a, b, matches.value)
+    );
   });
 
   // Calculate standings inline (used by updateFinalMatchTeams to avoid circular dependency)
   const calculateStandings = (currentMatches: MatchData[]) => {
-    const teamStandings = teams.value.map(team => {
+    const teamStandings = teams.value.map((team) => {
       const teamMatches = currentMatches.filter(
-        m => (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) && 
-             m.matchType === 'group' &&
-             m.isPlayed === true
+        (m) =>
+          (m.homeTeamId === team.teamId || m.awayTeamId === team.teamId) &&
+          m.matchType === "group" &&
+          m.isPlayed === true
       );
 
       let points = 0;
       let goalsFor = 0;
       let goalsAgainst = 0;
 
-      teamMatches.forEach(match => {
+      teamMatches.forEach((match) => {
         const isHome = match.homeTeamId === team.teamId;
-        const teamScore = isHome ? (match.homeTeamScore || 0) : (match.awayTeamScore || 0);
-        const opponentScore = isHome ? (match.awayTeamScore || 0) : (match.homeTeamScore || 0);
+        const teamScore = isHome
+          ? match.homeTeamScore || 0
+          : match.awayTeamScore || 0;
+        const opponentScore = isHome
+          ? match.awayTeamScore || 0
+          : match.homeTeamScore || 0;
 
         goalsFor += teamScore;
         goalsAgainst += opponentScore;
@@ -196,7 +298,9 @@ export const useEditionsStore = defineStore('editions', () => {
       };
     });
 
-    return teamStandings.sort((a, b) => compareTeamsWithTiebreakers(a, b, currentMatches));
+    return teamStandings.sort((a, b) =>
+      compareTeamsWithTiebreakers(a, b, currentMatches)
+    );
   };
 
   // Update final match teams based on current standings
@@ -205,9 +309,13 @@ export const useEditionsStore = defineStore('editions', () => {
     if (sorted.length < 4) return currentMatches;
 
     // Create new matches array with updated final match teams
-    return currentMatches.map(match => {
+    return currentMatches.map((match) => {
       // Update Small Final: 3rd vs 4th
-      if (match.matchType === 'small_final' && sorted[2]?.teamId && sorted[3]?.teamId) {
+      if (
+        match.matchType === "small_final" &&
+        sorted[2]?.teamId &&
+        sorted[3]?.teamId
+      ) {
         return {
           ...match,
           homeTeamId: sorted[2].teamId,
@@ -216,7 +324,11 @@ export const useEditionsStore = defineStore('editions', () => {
       }
 
       // Update Big Final: 1st vs 2nd
-      if (match.matchType === 'big_final' && sorted[0]?.teamId && sorted[1]?.teamId) {
+      if (
+        match.matchType === "big_final" &&
+        sorted[0]?.teamId &&
+        sorted[1]?.teamId
+      ) {
         return {
           ...match,
           homeTeamId: sorted[0].teamId,
@@ -239,7 +351,7 @@ export const useEditionsStore = defineStore('editions', () => {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
-      console.error('Failed to save editions state:', e);
+      console.error("Failed to save editions state:", e);
     }
   };
 
@@ -259,7 +371,7 @@ export const useEditionsStore = defineStore('editions', () => {
         goals.value = state.goals;
       }
     } catch (e) {
-      console.error('Failed to load editions state:', e);
+      console.error("Failed to load editions state:", e);
     }
   };
 
@@ -271,14 +383,20 @@ export const useEditionsStore = defineStore('editions', () => {
       currentEdition.value = edition;
 
       // Fetch full edition data from backend
-      const fullEditionResponse = await editionService.getFull(edition.editionId!);
+      const fullEditionResponse = await editionService.getFull(
+        edition.editionId!
+      );
       const fullEditionData = fullEditionResponse.data;
 
       // Map teams from the response
       teams.value = fullEditionData.teams.map((team: any) => ({
         teamId: team.teamId,
         editionId: fullEditionData.editionId,
-        color: (team.color || team.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
+        color: (team.color || team.teamColor) as
+          | "green"
+          | "orange"
+          | "gray"
+          | "blue",
         players: Array.isArray(team.players) ? team.players : [],
         createdAt: team.createdAt,
         updatedAt: team.updatedAt,
@@ -290,18 +408,30 @@ export const useEditionsStore = defineStore('editions', () => {
         editionId: fullEditionData.editionId,
         homeTeamId: match.team1Id,
         awayTeamId: match.team2Id,
-        homeTeam: match.team1 ? {
-          teamId: match.team1.teamId,
-          editionId: fullEditionData.editionId,
-          color: (match.team1.color || match.team1.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
-        } : undefined,
-        awayTeam: match.team2 ? {
-          teamId: match.team2.teamId,
-          editionId: fullEditionData.editionId,
-          color: (match.team2.color || match.team2.teamColor) as 'green' | 'orange' | 'gray' | 'blue',
-        } : undefined,
+        homeTeam: match.team1
+          ? {
+              teamId: match.team1.teamId,
+              editionId: fullEditionData.editionId,
+              color: (match.team1.color || match.team1.teamColor) as
+                | "green"
+                | "orange"
+                | "gray"
+                | "blue",
+            }
+          : undefined,
+        awayTeam: match.team2
+          ? {
+              teamId: match.team2.teamId,
+              editionId: fullEditionData.editionId,
+              color: (match.team2.color || match.team2.teamColor) as
+                | "green"
+                | "orange"
+                | "gray"
+                | "blue",
+            }
+          : undefined,
         matchNumber: match.stage,
-        matchType: match.matchType as 'group' | 'small_final' | 'big_final',
+        matchType: match.matchType as "group" | "small_final" | "big_final",
         homeTeamScore: match.team1Score,
         awayTeamScore: match.team2Score,
         isPlayed: match.goals && match.goals.length > 0,
@@ -317,22 +447,24 @@ export const useEditionsStore = defineStore('editions', () => {
           matchId: match.matchId,
           teamId: goal.teamId,
           playerId: goal.playerId,
-          goalType: goal.goalType as 'normal' | 'penalty' | 'own_goal',
+          goalType: goal.goalType as "normal" | "penalty" | "own_goal",
           createdAt: goal.createdAt,
           updatedAt: goal.updatedAt,
         }))
       );
 
       // Extract all players from teams
-      players.value = fullEditionData.teams.flatMap((team: any) => team.players || []);
+      players.value = fullEditionData.teams.flatMap(
+        (team: any) => team.players || []
+      );
 
       // Update match scores based on goals (should already be in response, but recalculate to be sure)
       updateMatchScores();
 
       saveState();
     } catch (e: any) {
-      error.value = e.message || 'Failed to initialize edition';
-      console.error('Error initializing edition:', e);
+      error.value = e.message || "Failed to initialize edition";
+      console.error("Error initializing edition:", e);
     } finally {
       loading.value = false;
     }
@@ -342,23 +474,27 @@ export const useEditionsStore = defineStore('editions', () => {
   const createMatches = async (edition: Edition) => {
     try {
       loading.value = true;
-      
+
       for (const matchTemplate of MATCH_ORDER) {
         let homeTeamId: number | null = null;
         let awayTeamId: number | null = null;
 
         // Find team IDs by color
-        if (matchTemplate.type === 'group') {
-          const homeTeam = teams.value.find(t => t.color === matchTemplate.homeColor);
-          const awayTeam = teams.value.find(t => t.color === matchTemplate.awayColor);
+        if (matchTemplate.type === "group") {
+          const homeTeam = teams.value.find(
+            (t) => t.color === matchTemplate.homeColor
+          );
+          const awayTeam = teams.value.find(
+            (t) => t.color === matchTemplate.awayColor
+          );
           homeTeamId = homeTeam?.teamId || null;
           awayTeamId = awayTeam?.teamId || null;
-        } else if (matchTemplate.type === 'small_final') {
+        } else if (matchTemplate.type === "small_final") {
           // Small final: 3rd vs 4th
           const sorted = standings.value;
           homeTeamId = sorted[2]?.teamId || null;
           awayTeamId = sorted[3]?.teamId || null;
-        } else if (matchTemplate.type === 'big_final') {
+        } else if (matchTemplate.type === "big_final") {
           // Big final: 1st vs 2nd
           const sorted = standings.value;
           homeTeamId = sorted[0]?.teamId || null;
@@ -384,8 +520,8 @@ export const useEditionsStore = defineStore('editions', () => {
 
       saveState();
     } catch (e: any) {
-      error.value = e.message || 'Failed to create matches';
-      console.error('Error creating matches:', e);
+      error.value = e.message || "Failed to create matches";
+      console.error("Error creating matches:", e);
     } finally {
       loading.value = false;
     }
@@ -443,7 +579,12 @@ export const useEditionsStore = defineStore('editions', () => {
   };
 
   // Add goal to match
-  const addGoal = async (matchId: number, playerId: number, teamId: number, goalType: 'normal' | 'penalty' | 'own_goal' = 'normal') => {
+  const addGoal = async (
+    matchId: number,
+    playerId: number,
+    teamId: number,
+    goalType: "normal" | "penalty" | "own_goal" = "normal"
+  ) => {
     try {
       const goalData: Goal = {
         matchId,
@@ -455,7 +596,13 @@ export const useEditionsStore = defineStore('editions', () => {
       // If creating new edition, just add to local state
       if (isCreatingNewEdition.value) {
         // Generate a temporary negative ID for local goals (to distinguish from database IDs)
-        const tempId = Math.min(...goals.value.filter(g => g.goalId && g.goalId < 0).map(g => g.goalId || 0), 0) - 1;
+        const tempId =
+          Math.min(
+            ...goals.value
+              .filter((g) => g.goalId && g.goalId < 0)
+              .map((g) => g.goalId || 0),
+            0
+          ) - 1;
         goalData.goalId = tempId;
         goals.value.push(goalData);
       } else {
@@ -470,7 +617,7 @@ export const useEditionsStore = defineStore('editions', () => {
       saveState();
       return goalData;
     } catch (e: any) {
-      error.value = e.message || 'Failed to add goal';
+      error.value = e.message || "Failed to add goal";
       throw e;
     }
   };
@@ -480,11 +627,11 @@ export const useEditionsStore = defineStore('editions', () => {
     try {
       // If creating new edition, just remove from local state
       if (isCreatingNewEdition.value) {
-        goals.value = goals.value.filter(g => g.goalId !== goalId);
+        goals.value = goals.value.filter((g) => g.goalId !== goalId);
       } else {
         // If editing existing edition, delete from database
         await goalService.delete(goalId);
-        goals.value = goals.value.filter(g => g.goalId !== goalId);
+        goals.value = goals.value.filter((g) => g.goalId !== goalId);
       }
 
       // Update match scores
@@ -492,7 +639,7 @@ export const useEditionsStore = defineStore('editions', () => {
 
       saveState();
     } catch (e: any) {
-      error.value = e.message || 'Failed to remove goal';
+      error.value = e.message || "Failed to remove goal";
       throw e;
     }
   };
@@ -500,18 +647,26 @@ export const useEditionsStore = defineStore('editions', () => {
   // Update match scores based on goals (only for played matches)
   const updateMatchScores = () => {
     // Create a new array to ensure Vue reactivity triggers properly
-    matches.value = matches.value.map(match => {
-      const matchGoals = goals.value.filter(g => g.matchId === match.matchId);
-      
+    matches.value = matches.value.map((match) => {
+      const matchGoals = goals.value.filter((g) => g.matchId === match.matchId);
+
       // If we have goals, ALWAYS recalculate scores and mark as played
       if (matchGoals.length > 0) {
         // Count regular goals for each team
-        const homeGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType !== 'own_goal').length;
-        const awayGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType !== 'own_goal').length;
-        
+        const homeGoals = matchGoals.filter(
+          (g) => g.teamId === match.homeTeamId && g.goalType !== "own_goal"
+        ).length;
+        const awayGoals = matchGoals.filter(
+          (g) => g.teamId === match.awayTeamId && g.goalType !== "own_goal"
+        ).length;
+
         // Count own goals - credited to the opposing team
-        const homeOwnGoals = matchGoals.filter(g => g.teamId === match.awayTeamId && g.goalType === 'own_goal').length;
-        const awayOwnGoals = matchGoals.filter(g => g.teamId === match.homeTeamId && g.goalType === 'own_goal').length;
+        const homeOwnGoals = matchGoals.filter(
+          (g) => g.teamId === match.awayTeamId && g.goalType === "own_goal"
+        ).length;
+        const awayOwnGoals = matchGoals.filter(
+          (g) => g.teamId === match.homeTeamId && g.goalType === "own_goal"
+        ).length;
 
         return {
           ...match,
@@ -522,9 +677,12 @@ export const useEditionsStore = defineStore('editions', () => {
         };
       } else {
         // No goals - check if we have a score from backend
-        const hasScore = match.homeTeamScore !== null && match.homeTeamScore !== undefined && 
-                         match.awayTeamScore !== null && match.awayTeamScore !== undefined;
-        
+        const hasScore =
+          match.homeTeamScore !== null &&
+          match.homeTeamScore !== undefined &&
+          match.awayTeamScore !== null &&
+          match.awayTeamScore !== undefined;
+
         if (hasScore) {
           // Keep the backend scores
           return {
@@ -552,9 +710,14 @@ export const useEditionsStore = defineStore('editions', () => {
   // Mark a match as played (enables score tracking for 0-0 draws)
   const markMatchAsPlayed = (matchId: number, isPlayed: boolean = true) => {
     // Update matches array with new isPlayed state to ensure reactivity
-    matches.value = matches.value.map(m => 
-      m.matchId === matchId 
-        ? { ...m, isPlayed, homeTeamScore: isPlayed ? 0 : null, awayTeamScore: isPlayed ? 0 : null }
+    matches.value = matches.value.map((m) =>
+      m.matchId === matchId
+        ? {
+            ...m,
+            isPlayed,
+            homeTeamScore: isPlayed ? 0 : null,
+            awayTeamScore: isPlayed ? 0 : null,
+          }
         : m
     );
     saveState();
@@ -580,7 +743,7 @@ export const useEditionsStore = defineStore('editions', () => {
       // Goals are already saved individually when added
       saveState();
     } catch (e: any) {
-      error.value = e.message || 'Failed to save edition';
+      error.value = e.message || "Failed to save edition";
       throw e;
     } finally {
       loading.value = false;
@@ -589,12 +752,12 @@ export const useEditionsStore = defineStore('editions', () => {
 
   // Get team color
   const getTeamColor = (teamId: number) => {
-    return teams.value.find(t => t.teamId === teamId)?.color || '';
+    return teams.value.find((t) => t.teamId === teamId)?.color || "";
   };
 
   // Get team players
   const getTeamPlayers = (teamId: number) => {
-    const team = teams.value.find(t => t.teamId === teamId);
+    const team = teams.value.find((t) => t.teamId === teamId);
     return team?.players || [];
   };
 

@@ -1,13 +1,13 @@
 <template>
   <v-dialog v-model="isOpen" persistent width="600" @update:model-value="handleDialogClose">
     <v-card>
-      <v-card-title class="text-h6 d-flex align-center gap-2">
+      <v-card-title class="text-xl text-bold py-lg px-lg bg-primary text-white d-flex align-center gap-md rounded-t-lg">
         <v-icon>mdi-account-search</v-icon>
         Select Your Player
       </v-card-title>
 
-      <v-card-text>
-        <p class="text-body2 mb-6 text-grey-darken-1">
+      <v-card-text class="py-lg px-lg">
+        <p class="text-base text-muted mb-lg">
           To proceed, please select the player profile you are associated with.
         </p>
 
@@ -21,7 +21,7 @@
           :loading="isLoadingPlayers"
           :disabled="isLoadingPlayers || isAssigning"
           variant="outlined"
-          class="mb-4"
+          class="mb-md rounded-md"
         />
 
         <v-text-field
@@ -32,22 +32,24 @@
           clearable
           @input="filterPlayers"
           :disabled="isAssigning"
-          class="mb-4"
+          class="mb-md rounded-md"
         />
 
-        <div v-if="filteredPlayersList.length > 0" class="player-list mt-4">
+        <div v-if="filteredPlayersList.length > 0" class="overflow-y-auto" style="max-height: 400px">
           <v-card
             v-for="player in filteredPlayersList"
             :key="player.playerId"
             variant="outlined"
-            class="mb-2 cursor-pointer hover-card"
-            :class="{ 'border-primary': selectedPlayerId === player.playerId }"
-            @click="selectedPlayerId = player.playerId"
+            class="mb-sm cursor-pointer transition-all rounded-md"
+            :class="{ 'border-2 bg-grey-50 border-primary': selectedPlayerId === player.playerId }"
+            @click="selectedPlayerId = player.playerId || null"
+            @mouseenter="$event.currentTarget.classList.add('shadow-md')"
+            @mouseleave="selectedPlayerId !== player.playerId && $event.currentTarget.classList.remove('shadow-md')"
           >
-            <v-card-text class="pa-3">
-              <div class="d-flex align-center justify-space-between">
+            <v-card-text class="p-md">
+              <div class="flex flex-between align-center">
                 <div>
-                  <p class="font-weight-bold mb-0">
+                  <p class="text-base text-bold mb-0">
                     {{ player.firstName }} {{ player.lastName }}
                   </p>
                 </div>
@@ -65,7 +67,7 @@
           v-if="!isLoadingPlayers && filteredPlayersList.length === 0 && players.length > 0"
           type="info"
           variant="tonal"
-          class="mt-4"
+          class="mt-md rounded-md"
         >
           No players match your search
         </v-alert>
@@ -74,7 +76,7 @@
           v-if="errorMessage"
           type="error"
           variant="tonal"
-          class="mt-4"
+          class="mt-md rounded-md"
         >
           {{ errorMessage }}
         </v-alert>
@@ -82,21 +84,15 @@
 
       <v-divider />
 
-      <v-card-actions>
-        <v-spacer />
-        <v-btn
-          variant="text"
-          @click="handleSkip"
-          :disabled="isAssigning"
-        >
-          Skip for Now
-        </v-btn>
+      <v-card-actions class="py-md px-lg gap-md justify-end">
+
         <v-btn
           color="primary"
-          variant="raised"
+          variant="elevated"
           @click="handleAssign"
           :loading="isAssigning"
           :disabled="!selectedPlayerId || isAssigning"
+          class="px-lg rounded-full"
         >
           Confirm
         </v-btn>
@@ -108,8 +104,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { playerService } from '../services/api';
-import type { Player } from '../types';
+import { playerService } from '../services/playerService';
+import type { Player } from '../types/index';
+
 
 interface Props {
   open: boolean;
@@ -149,7 +146,7 @@ const filteredPlayersList = computed(() => {
   }
   
   const query = searchQuery.value.toLowerCase();
-  return players.value.filter(player => 
+  return players.value.filter((player: { firstName: any; lastName: any; grade: { toString: () => string | string[]; }; }) => 
     `${player.firstName} ${player.lastName}`.toLowerCase().includes(query) ||
     player.grade.toString().includes(query)
   );
@@ -196,12 +193,6 @@ const handleAssign = async () => {
   }
 };
 
-const handleSkip = () => {
-  emit('skip');
-  props.onSkip?.();
-  isOpen.value = false;
-};
-
 const handleDialogClose = (value: boolean) => {
   isOpen.value = value;
   emit('update:open', value);
@@ -216,26 +207,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.hover-card {
-  transition: all 0.2s;
-}
-
-.hover-card:hover {
-  background-color: rgba(var(--v-theme-primary), 0.05);
-  border-color: rgb(var(--v-theme-primary)) !important;
-}
-
-.border-primary {
-  border: 2px solid rgb(var(--v-theme-primary)) !important;
-}
-
-.player-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-</style>

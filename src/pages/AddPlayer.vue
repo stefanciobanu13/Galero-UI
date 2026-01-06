@@ -1,19 +1,19 @@
 <template>
-  <v-container class="py-8">
+  <v-container class="py-xl">
     <v-row justify="center">
       <v-col cols="12" sm="8" md="6">
-        <v-card elevation="2">
-          <v-card-title class="text-h5 mb-6">
+        <v-card class="rounded-lg shadow-xl">
+          <v-card-title class="text-2xl text-bold py-lg px-lg bg-primary text-white rounded-t-lg">
             Add New Player
           </v-card-title>
 
-          <v-card-text>
+          <v-card-text class="py-lg px-lg">
             <v-alert
               v-if="playerStore.error"
               type="error"
               dismissible
               closable
-              class="mb-6"
+              class="mb-lg rounded-md"
             >
               {{ playerStore.error }}
             </v-alert>
@@ -23,18 +23,19 @@
               type="success"
               dismissible
               closable
-              class="mb-6"
+              class="mb-lg rounded-md"
             >
               {{ successMessage }}
             </v-alert>
 
-            <v-form ref="form" @submit.prevent="submitForm">
+            <v-form ref="form" @submit.prevent="submitForm" class="flex flex-column gap-lg">
               <v-text-field
                 v-model="formData.firstName"
                 label="First Name"
                 prepend-icon="mdi-account"
                 :rules="[rules.required]"
-                class="mb-4"
+                variant="outlined"
+                class="rounded-md"
               />
 
               <v-text-field
@@ -42,7 +43,8 @@
                 label="Last Name"
                 prepend-icon="mdi-account"
                 :rules="[rules.required]"
-                class="mb-4"
+                variant="outlined"
+                class="rounded-md"
               />
 
               <v-text-field
@@ -54,7 +56,8 @@
                 min="0"
                 max="10"
                 :rules="[rules.required, rules.gradeRange]"
-                class="mb-6"
+                variant="outlined"
+                class="rounded-md"
               />
 
               <v-btn
@@ -64,6 +67,7 @@
                 block
                 :loading="playerStore.loading"
                 prepend-icon="mdi-plus"
+                class="rounded-full"
               >
                 Add Player
               </v-btn>
@@ -74,7 +78,7 @@
                 size="large"
                 block
                 variant="outlined"
-                class="mt-4"
+                class="rounded-full"
               >
                 Cancel
               </v-btn>
@@ -89,7 +93,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { usePlayerStore } from '../stores/player';
+import { usePlayerStore } from '../hooks/usePlayer';
 import type { Player } from '../types';
 
 const router = useRouter();
@@ -136,5 +140,3 @@ const submitForm = async () => {
 };
 </script>
 
-<style scoped>
-</style>

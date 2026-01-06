@@ -2,24 +2,24 @@
   <v-container class="fill-height">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="6" lg="4">
-        <v-card elevation="4" class="pa-8">
-          <v-card-title class="text-h4 text-center mb-8">
+        <v-card class="rounded-lg shadow-2xl pa-xl">
+          <v-card-title class="text-4xl text-bold text-center mb-xl">
             {{ t('pages.login.title') }}
           </v-card-title>
 
-          <v-card-text>
-            <p class="text-center text-body2 mb-6 text-grey">
+          <v-card-text class="py-lg px-lg">
+            <p class="text-center text-base text-muted mb-lg">
               {{ t('pages.login.welcome') }}
             </p>
 
-            <div class="text-center mb-6">
+            <div class="text-center mb-lg">
               <div id="google-signin-button" ref="googleButtonContainer" />
             </div>
             <v-alert
               v-if="errorMessage"
               type="error"
               variant="tonal"
-              class="mt-6"
+              class="mt-md rounded-md"
             >
               {{ errorMessage }}
             </v-alert>
@@ -73,9 +73,7 @@ const handleGoogleSuccess = async (response: any) => {
   }
 };
 
-const handleGoogleError = () => {
-  errorMessage.value = 'Google sign-in failed. Please try again.';
-};
+
 
 const handlePlayerSelected = () => {
   // Player has been assigned, redirect to home
@@ -87,11 +85,6 @@ const handlePlayerSelected = () => {
 const handleSkipPlayerSelection = () => {
   // User skipped player selection, redirect to home
   router.push('/');
-};
-
-const isGoogleClientIdConfigured = (): boolean => {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  return clientId && !clientId.includes('YOUR_GOOGLE_CLIENT_ID');
 };
 
 
@@ -124,12 +117,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.fill-height {
-  height: 100vh;
-}
-
-.w-100 {
-  width: 100%;
-}
-</style>
